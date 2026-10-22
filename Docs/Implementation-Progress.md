@@ -1,5 +1,17 @@
 # Dyscovery: Implementation Progress
 
+## Langkah 2: Integrasi Supabase dan identitas (kode tersedia, staging belum diuji)
+
+- Client `src/lib/supabase/{config,client,server}.ts` dan refresh sesi `src/proxy.ts` menggunakan SDK resmi; tidak ada privileged key atau otorisasi berdasarkan metadata Google.
+- `.env.example` tersedia. Konfigurasi URL HTTPS dan publishable key wajib saat request aplikasi, bukan saat build.
+- Migrasi: `supabase/migrations/202610230001_identity.sql`; profil pending, role null, NIP opsional pada teacher_profiles, RLS self-read, update terbatas nama, kolom kewenangan tidak dapat ditulis pengguna. Nama berubah membatalkan konfirmasi identitas.
+- Pengujian SQL runnable: `supabase/tests/identity.sql` (rollback fixture sintetis; baca lintas akun dan eskalasi kewenangan ditolak).
+- Verifikasi aktual: `npm run lint`, `npm run typecheck`, `npm run build` selesai exit 0.
+- BELUM dijalankan: migrasi staging, pengujian SQL, refresh sesi riil atau OAuth end-to-end. Tidak ada kredensial/proyek Supabase yang diakses sesi ini. Jangan menganggap RLS sudah terbukti sampai SQL test dijalankan.
+- Panduan operator dan batas implementasi: [Supabase-Staging-Setup.md](Supabase-Staging-Setup.md).
+- Belum ada login/callback/onboarding. Tahap selanjutnya setelah review dan uji migrasi: endpoint autentikasi dan RPC onboarding. Tidak ada commit/push otomatis untuk tahap ini.
+- Instalasi masih melaporkan konflik peer tooling ESLint dan temuan audit yang sudah tercatat; bukan perbaikan keamanan tooling pada tahap ini.
+
 ## Batas implementasi
 
 - Acuan: `Dyscovery-PRD.md`, `Dyscovery-ERD.md`, `Dyscovery-Workflow.md`, `Dyscovery-Security-Rules.md`.
