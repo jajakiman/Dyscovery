@@ -1,5 +1,14 @@
 # Dyscovery: Implementation Progress
 
+## Langkah 3: Backend autentikasi dan onboarding (belum uji end-to-end)
+
+- Ditambahkan route `/api/auth/[action]`, `/api/auth/profile`, `/auth/callback`, `/auth/confirm`, validasi `src/lib/auth/input.ts`, serta check runnable `tests/auth-input.test.mjs`.
+- Migrasi 002 menambahkan RPC onboarding atomik tanpa memberikan role teacher/verified. Persetujuan eksplisit divalidasi endpoint; RPC hanya mencatat konfirmasi identitas sendiri.
+- Hasil aktual: check input lulus; lint, typecheck, build exit 0. Node 22 menampilkan warning experimental strip-types/module detection saat check, bukan kegagalan.
+- Migrasi 001/uji identity dilaporkan sukses oleh pemilik melalui screenshot; bukan eksekusi agen. Migrasi 002, uji SQL onboarding, OAuth/email/session staging belum dijalankan.
+- Panduan template konfirmasi email, kontrak API, matriks uji dan batas rilis: [Auth-Staging-Testing.md](Auth-Staging-Testing.md).
+- Belum UI, reset password, audit onboarding, perlindungan abuse aplikasi lengkap, atau akses siswa nyata. Tidak commit/push atau deploy otomatis pada tahap ini.
+
 ## Langkah 2: Integrasi Supabase dan identitas (kode tersedia, staging belum diuji)
 
 - Client `src/lib/supabase/{config,client,server}.ts` dan refresh sesi `src/proxy.ts` menggunakan SDK resmi; tidak ada privileged key atau otorisasi berdasarkan metadata Google.
