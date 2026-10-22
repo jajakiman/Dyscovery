@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 385 397" role="img" aria-labelledby="title">
+  <title id="title">Piko Menyapa Ceria</title>
+  <g id="feet" fill="#24476A"><path d="M141 312V340C130 339 120 343 120 350Q120 357 130 357H157Q166 357 166 348V340H153V312Z M220 312V340H207V348Q207 357 216 357H243Q253 357 253 350C253 343 243 339 232 340V312Z"/></g><g id="arm-left" fill="#24476A">
+  <path d="M89 203C64 210 51 230 51 251H62C62 234 73 222 92 216Z"/>
+  <path d="M50 245C40 245 35 253 35 265V276C35 287 42 294 52 294C63 294 71 286 71 275V268C77 270 81 266 80 261C79 256 73 249 68 247C63 245 59 249 58 253C57 248 54 245 50 245Z"/>
+</g><g id="arm-right" fill="#24476A">
+  <path d="M284 204C305 195 322 172 328 150L317 146C312 163 299 181 280 193Z"/>
+  <path d="M320 148C313 141 315 133 322 124L329 115C336 106 345 104 353 111C361 118 362 129 354 138L348 144C351 141 356 142 358 147C360 152 357 160 351 163C345 167 340 164 340 158C337 162 332 163 328 160C324 157 323 151 320 148Z"/>
+</g><g id="body">
+  <path fill="#24476A" d="M116 76H260Q289 76 289 106V290Q289 321 259 321H116Q84 321 84 290V107Q84 76 116 76Z"/>
+  <path fill="#FAF8F4" d="M111 96H261Q272 96 272 108V282H112Q101 282 101 293V108Q101 96 111 96Z"/>
+  <path fill="#F2B880" d="M234 96H260Q272 96 272 108V137L234 99Z"/>
+  <path fill="#24476A" d="M111 283H272V304H113Q99 304 99 294Q99 283 111 283Z"/>
+  <path fill="#FAF8F4" d="M115 289H271V298H115Q107 298 107 294Q107 289 115 289Z"/>
+</g><g id="fx-wave" stroke="#F2B880" stroke-width="3" stroke-linecap="round" fill="none">
+  <path d="M358 106C365 113 368 123 367 132"/>
+  <path d="M368 111C375 119 378 128 376 137"/>
+</g><g id="cheeks">
+  <ellipse cx="132" cy="207" rx="10" ry="6" fill="#F2B880" opacity="0.85"/>
+  <ellipse cx="240" cy="207" rx="10" ry="6" fill="#F2B880" opacity="0.85"/>
+</g><g id="eyes">
+  <path d="M136 189C137 175 155 175 157 189" stroke="#24476A" stroke-width="5" stroke-linecap="round" fill="none"/>
+  <path d="M215 189C216 175 234 175 236 189" stroke="#24476A" stroke-width="5" stroke-linecap="round" fill="none"/>
+</g><g id="mouth">
+  <path d="M165 218C165 218 168 248 186 248C204 248 207 218 207 218Z" fill="#24476A"/>
+  <path d="M174 233C178 244 194 244 198 233C193 230 179 230 174 233Z" fill="#F2B880"/>
+</g>
+</svg>

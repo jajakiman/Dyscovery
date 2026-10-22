@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 385 397" role="img" aria-labelledby="title">
+  <title id="title">Piko Menyimak Suara Mic</title>
+  <g id="feet" fill="#24476A"><path d="M141 312V340C130 339 120 343 120 350Q120 357 130 357H157Q166 357 166 348V340H153V312Z M220 312V340H207V348Q207 357 216 357H243Q253 357 253 350C253 343 243 339 232 340V312Z"/></g><g id="arm-left" fill="#24476A">
+  <path d="M89 203C64 210 51 230 51 251H62C62 234 73 222 92 216Z"/>
+  <path d="M50 245C40 245 35 253 35 265V276C35 287 42 294 52 294C63 294 71 286 71 275V268C77 270 81 266 80 261C79 256 73 249 68 247C63 245 59 249 58 253C57 248 54 245 50 245Z"/>
+</g><g id="arm-right" fill="#24476A">
+  <path d="M284 205C305 195 316 178 316 158L305 158C305 174 296 187 279 196Z"/>
+  <path d="M302 158C300 150 304 142 312 135L319 129C327 123 336 125 341 133C346 141 343 151 334 157L327 162C331 160 336 162 337 167C338 172 333 180 327 182C321 184 317 180 318 175C315 178 310 178 307 175C304 171 303 163 302 158Z"/>
+</g><g id="body">
+  <path fill="#24476A" d="M116 76H260Q289 76 289 106V290Q289 321 259 321H116Q84 321 84 290V107Q84 76 116 76Z"/>
+  <path fill="#FAF8F4" d="M111 96H261Q272 96 272 108V282H112Q101 282 101 293V108Q101 96 111 96Z"/>
+  <path fill="#F2B880" d="M234 96H260Q272 96 272 108V137L234 99Z"/>
+  <path fill="#24476A" d="M111 283H272V304H113Q99 304 99 294Q99 283 111 283Z"/>
+  <path fill="#FAF8F4" d="M115 289H271V298H115Q107 298 107 294Q107 289 115 289Z"/>
+</g><g id="fx-soundwaves" stroke="#24476A" stroke-linecap="round" fill="none" opacity="0.8">
+  <path d="M336 112C344 118 348 128 347 137" stroke-width="3"/>
+  <path d="M346 104C357 113 361 126 360 140" stroke-width="3.5" stroke="#F2B880"/>
+  <path d="M356 96C370 107 375 124 373 143" stroke-width="3"/>
+</g><g id="cheeks">
+  <ellipse cx="132" cy="207" rx="10" ry="6" fill="#F2B880" opacity="0.85"/>
+  <ellipse cx="240" cy="207" rx="10" ry="6" fill="#F2B880" opacity="0.85"/>
+</g><g id="eyes">
+  <ellipse cx="145" cy="187" rx="8.5" ry="14" fill="#24476A"/>
+  <ellipse cx="227" cy="187" rx="8.5" ry="14" fill="#24476A"/>
+  <circle cx="147" cy="180" r="3.2" fill="#FFFFFF"/>
+  <circle cx="229" cy="180" r="3.2" fill="#FFFFFF"/>
+</g><g id="mouth">
+  <ellipse cx="186" cy="226" rx="6" ry="7" fill="#24476A"/>
+</g>
+</svg>

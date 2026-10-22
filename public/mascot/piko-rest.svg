@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 373 397" role="img" aria-labelledby="title">
+  <title id="title">Piko Menunggu Santai</title>
+  <g id="feet" fill="#24476A"><path d="M141 312V340C130 339 120 343 120 350Q120 357 130 357H157Q166 357 166 348V340H153V312Z M220 312V340H207V348Q207 357 216 357H243Q253 357 253 350C253 343 243 339 232 340V312Z"/></g><g id="arm-left" fill="#24476A">
+  <path d="M89 203C70 216 68 238 80 258L70 263C56 238 60 211 83 194Z"/>
+  <path d="M78 256C77 248 83 242 93 241L107 240C118 239 125 245 125 254C125 264 117 268 107 269L94 270C96 274 93 279 88 280C83 281 77 277 77 271C76 265 81 261 86 263C83 259 81 254 78 256Z"/>
+</g><g id="arm-right" fill="#24476A">
+  <path d="M284 203C303 216 305 238 293 258L303 263C317 238 313 211 290 194Z"/>
+  <path d="M295 256C296 248 290 242 280 241L266 240C255 239 248 245 248 254C248 264 256 268 266 269L279 270C277 274 280 279 285 280C290 281 296 277 296 271C297 265 292 261 287 263C290 259 292 254 295 256Z"/>
+</g><g id="body">
+  <path fill="#24476A" d="M116 76H260Q289 76 289 106V290Q289 321 259 321H116Q84 321 84 290V107Q84 76 116 76Z"/>
+  <path fill="#FAF8F4" d="M111 96H261Q272 96 272 108V282H112Q101 282 101 293V108Q101 96 111 96Z"/>
+  <path fill="#F2B880" d="M234 96H260Q272 96 272 108V137L234 99Z"/>
+  <path fill="#24476A" d="M111 283H272V304H113Q99 304 99 294Q99 283 111 283Z"/>
+  <path fill="#FAF8F4" d="M115 289H271V298H115Q107 298 107 294Q107 289 115 289Z"/>
+</g><g id="fx-rest" fill="#F2B880" font-family="Arial, sans-serif" font-weight="700">
+  <text x="260" y="70" font-size="16" opacity="0.7">z</text>
+  <text x="274" y="55" font-size="22" opacity="0.9">Z</text>
+</g><g id="cheeks">
+  <ellipse cx="132" cy="207" rx="10" ry="6" fill="#F2B880" opacity="0.85"/>
+  <ellipse cx="240" cy="207" rx="10" ry="6" fill="#F2B880" opacity="0.85"/>
+</g><g id="eyes">
+  <path d="M136 186C140 195 154 195 158 186" stroke="#24476A" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+  <path d="M216 186C220 195 234 195 238 186" stroke="#24476A" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+</g><g id="mouth">
+  <path d="M174 224Q186 233 198 224" stroke="#24476A" stroke-width="4" stroke-linecap="round" fill="none"/>
+</g>
+</svg>
