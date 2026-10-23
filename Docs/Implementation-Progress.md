@@ -1,5 +1,18 @@
 # Dyscovery: Implementation Progress
 
+## Penugasan dan akses siswa (kode tersedia, database belum diterapkan)
+
+- Verifikasi lokal tahap ini: `npm run lint`, `npm run typecheck`, dan `npm run build` selesai dengan exit 0. Ini tidak memvalidasi eksekusi SQL/RLS; migrasi 003 dan test database masih menunggu pengujian staging oleh operator. Belum commit/push.
+- Migrasi `202610230003_assignments.sql`: schools, school_members, children, teacher_assignments. school_id tambahan pada assignment mengikat dua FK gabungan untuk mencegah penugasan lintas sekolah. Tidak menambah tabel kelas.
+- Status usulan sebelumnya dipakai: keanggotaan pending/active/revoked, assignment active/revoked/completed; siswa active/inactive. Grade dibatasi '2' sesuai scope MVP.
+- RLS read siswa memeriksa akun guru aktif/verified, sekolah verified, keanggotaan aktif/verified, siswa aktif, serta assignment aktif dan rentang waktu. Status dievaluasi ulang setiap query; profil pending tidak diberi akses.
+- GET `/api/children?offset=0`: maksimal 50 siswa ditugaskan; 401 tanpa login, 403 bukan guru verified, hasil kosong bila tidak ada penugasan. GET `/api/children/{uuid}`: detail minimal; 404 sama untuk tidak ada/tidak berizin agar tidak mengungkap keberadaan siswa.
+- Tidak ada endpoint tulis/provisioning, akses browser ke tabel sekolah/keanggotaan/penugasan, atau akses data anak nyata. Operator SQL saja yang mengelola provisioning sintetis pada tahap ini; audit provisioning belum dibangun, jangan gunakan data nyata.
+- Uji runnable: `supabase/tests/assignments.sql`, fixture rollback; mencakup baca sah, guru tanpa assignment, FK lintas sekolah, larangan tulis, assignment kedaluwarsa, dan akun suspended. Belum dijalankan pada database oleh agen.
+- Langkah operator: review dan jalankan migrasi 003 sekali setelah 001/002, lalu seluruh test assignments.sql pada staging. Jangan drop/reset bila konflik. Fixture test tidak membuat penugasan permanen untuk akun OAuth; provisioning akun uji riil menunggu UUID dan persetujuan pemilik.
+- OAuth/onboarding/logout sebelumnya dilaporkan sesuai oleh pemilik di staging, bukan pengujian otomatis agen.
+- Tahap berikutnya setelah validasi: hubungan wali/persetujuan, sebelum materi dan sesi asesmen.
+
 ## Halaman uji HP
 
 Halaman teknis `/auth/test` ditambahkan untuk Google OAuth, cek profil, onboarding sintetis, dan logout tanpa Console. Callback tetap ke JSON profil; buka ulang `/auth/test` setelah OAuth. Tidak ada form password/registrasi pada halaman ini karena SMTP masih belum disiapkan. Ini alat uji staging, bukan UI final. Tidak mengubah kewenangan atau membuat data anak. Pengujian browser HP/end-to-end tetap dilakukan pemilik setelah deployment; perubahan belum otomatis di-push.

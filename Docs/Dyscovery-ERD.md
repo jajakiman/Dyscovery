@@ -24,6 +24,8 @@ Diagram menggunakan Mermaid. Buka dalam penampil Markdown yang mendukung Mermaid
 
 ## 2. ERD identitas, sekolah, dan persetujuan
 
+Addendum penugasan: migrasi 003 menambahkan school_id pada TEACHER_ASSIGNMENT untuk FK gabungan (school_member_id, school_id) dan (child_id, school_id). Ini menjamin sekolah sama tanpa mengandalkan input aplikasi. CHILD.grade dibatasi '2' untuk MVP. Entitas hanya dapat diprovisikan operator pada tahap ini; guru memperoleh read siswa berdasarkan RLS, bukan akses seluruh sekolah. Migrasi/test database belum dijalankan agen.
+
 ### Addendum implementasi fondasi identitas
 
 Migrasi `supabase/migrations/202610230001_identity.sql` menambahkan `PROFILE.full_name` (nullable sebelum onboarding) dan `identity_confirmed_at` (konfirmasi pengguna, bukan verifikasi profesi), serta `TEACHER_PROFILE(profile_id PK/FK, nip nullable)`. Timestamp created_at/updated_at tersedia pada kedua tabel. `display_name` nullable sebelum onboarding. `product_role` nullable sampai ditetapkan oleh proses berwenang; tidak diisi dari metadata OAuth. Baris profil guru dapat menyimpan data pengajuan dan tidak membuktikan role/profesi atau memberikan izin. NIP berbentuk teks 18 digit, opsional, tidak dianggap validasi pemerintah dan belum diberi constraint unik. Pengguna hanya dapat mengubah nama sendiri; perubahan full_name membatalkan konfirmasi. Penulisan konfirmasi dan NIP lewat onboarding belum diimplementasikan. Migrasi ini belum diterapkan pada staging oleh agen.
