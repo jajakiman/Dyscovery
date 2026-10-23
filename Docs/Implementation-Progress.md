@@ -1,5 +1,9 @@
 # Dyscovery: Implementation Progress
 
+## Halaman uji HP
+
+Halaman teknis `/auth/test` ditambahkan untuk Google OAuth, cek profil, onboarding sintetis, dan logout tanpa Console. Callback tetap ke JSON profil; buka ulang `/auth/test` setelah OAuth. Tidak ada form password/registrasi pada halaman ini karena SMTP masih belum disiapkan. Ini alat uji staging, bukan UI final. Tidak mengubah kewenangan atau membuat data anak. Pengujian browser HP/end-to-end tetap dilakukan pemilik setelah deployment; perubahan belum otomatis di-push.
+
 ## Langkah 3: Backend autentikasi dan onboarding (belum uji end-to-end)
 
 - Ditambahkan route `/api/auth/[action]`, `/api/auth/profile`, `/auth/callback`, `/auth/confirm`, validasi `src/lib/auth/input.ts`, serta check runnable `tests/auth-input.test.mjs`.
