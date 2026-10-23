@@ -1,5 +1,28 @@
 # Dyscovery: Implementation Progress
 
+## Koreksi policy sesi setelah migrasi 006
+
+- Pemilik menjalankan test teacher-mode dan mendapat SQLSTATE 42501 pada SELECT assessment_sessions: policy sessions_assigned_read masih mengacu OID fungsi lama yang di-rename menjadi assigned_child_without_mode dan dicabut hak EXECUTE-nya.
+- Migrasi `202610230007_rebind_session_policy.sql` mengikat ulang policy ke can_access_assigned_child yang memeriksa lock. Tidak mengubah migrasi 006 yang sudah diterapkan, tidak membuka helper privat, dan tidak menghapus data.
+- Test teacher-mode.sql sekarang memeriksa dependency policy tidak mengacu helper privat serta authenticated tidak dapat mengeksekusinya. Jalankan migrasi 007 sekali setelah 006, lalu ulang seluruh test teacher-mode sampai rollback. SQL belum dieksekusi agen; keberhasilan database masih menunggu hasil operator.
+
+## UI validasi sementara mode guru/siswa
+
+- `/auth/mode-test` menambah login Google/email-password, setup PIN sekali, masuk mode dengan ID draft, unlock PIN, cek status dan uji akses `/api/children` tanpa menampilkan data siswa. PIN/password dibersihkan setelah submit dan tidak disimpan di localStorage/hasil request. Callback Google tetap ke profile JSON; buka ulang halaman setelah login.
+- Halaman teknis mengikuti warna/tipografi sederhana halaman auth/test, bukan UI final. Form guru ditampilkan hanya setelah status server; halaman memeriksa ulang saat focus/pageshow. Ini tidak menjamin penghapusan seluruh cache/history/tab lain. Jangan serahkan ke anak nyata; asesmen/stimulus/rekaman belum tersedia.
+- Perlu migrasi 006, uji SQL teacher-mode, dan env Vercel `ENABLE_SYNTHETIC_TEACHER_PIN=true` lalu redeploy. Belum membuat fixture permanen atau draft otomatis; ID draft berizin harus disiapkan lebih dahulu. Email/password tetap butuh akun confirmed dan SMTP bila registrasi belum tersedia.
+- Hasil aktual UI: lint, typecheck, build exit 0. Browser click-through/HP/OAuth/PIN database belum dijalankan agen; pengguna perlu memvalidasi di staging. Belum commit/push.
+
+## Fondasi PIN dan penguncian mode guru (parsial, belum handoff siswa)
+
+- Keputusan pemilik: login Google atau email/password, tanpa username khusus; PIN 6 digit untuk kembali dari mode siswa. PIN bukan MFA produksi. Login manual sudah tersedia di endpoint auth, tetapi SMTP dan uji email end-to-end masih tertunda; tidak mengklaim UI login manual selesai.
+- Migrasi 006 menambah teacher_device_modes privat, hash bcrypt cost 10 via pgcrypto, RPC set PIN satu kali, enter mode untuk draft sendiri yang berizin, status, unlock. Salah 5 kali memblokir 15 menit; counter diserialkan row lock dan hasil gagal dikembalikan tanpa exception agar counter tersimpan. Tidak ada PIN default/reset publik; recovery operator belum diimplementasikan.
+- Lock berlaku SELURUH akun guru, bukan hanya satu device, agar login baru/tab lama tidak melewati lock. Restrictive RLS memblokir profiles/teacher_profiles/children/material_versions/assessment_sessions; trigger memblokir bypass onboarding security-definer. Helper akses assignment dibungkus lock; helper lama tidak dapat dipanggil authenticated. Data yang telanjur ditampilkan tidak dapat dihapus dari memori/tab lewat RLS.
+- POST `/api/teacher-mode/{pin,enter,unlock}` menerima `{pin}` atau `{sessionId}`; perlu Origin staging dan `ENABLE_SYNTHETIC_TEACHER_PIN=true`. GET `/api/teacher-mode/status` memberikan mode teacher/student/locked. Flag endpoint bukan gerbang database: RPC authenticated tetap tersedia, sehingga jangan menerapkan migrasi ini ke penggunaan data nyata tanpa hardening. Mode siswa kedaluwarsa 1 jam, tetapi hak guru tetap terkunci sampai PIN benar. Unlock mengembalikan sessionId untuk navigasi kelak, bukan membuat sesi baru.
+- BELUM siap menyerahkan perangkat kepada siswa: tidak ada UI mode/login manual/PIN, pembersihan tampilan/cache/tab, navigasi kembali, atau kapabilitas siswa terpisah; status hanya metadata satu draft, tidak menerima respons/stimulus. Tidak ada assessment berjalan, audio, skor, atau AI. Langkah berikutnya wajib menuntaskan client handoff dan menguji history/back/tab lama sebelum perangkat diserahkan.
+- `supabase/tests/teacher-mode.sql` adalah test rollback penguncian akun, larangan baca/bypass onboarding, PIN immutable, 5 kesalahan dan pemulihan setelah lockout. Belum menguji enter end-to-end/konkurensi/HTTP/cache; SQL belum dijalankan agen. PostgreSQL lokal tidak tersedia pada tahap sebelumnya.
+- Verifikasi lokal aktual: lint, typecheck, build exit 0; 4 file input test lulus dengan warning Node strip-types/module detection. Test PIN awal gagal karena modul belum ada lalu lulus setelah implementasi. Belum commit/push. Pemilik melaporkan migrasi dan test 005 berhasil.
+
 ## Materi versi tetap dan draf sesi (migrasi 005 belum diterapkan)
 
 - Pemilik melaporkan migrasi 004 dan seluruh test consent sukses; bukan eksekusi agen. Tahap ini membangun persiapan saja: sesi selalu draft, belum dapat dimulai sebelum isolasi mode siswa tersedia sesuai Workflow/Security Rules.
