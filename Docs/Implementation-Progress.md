@@ -1,5 +1,14 @@
 # Dyscovery: Implementation Progress
 
+## Latihan teks sintetis (migrasi 008 belum diterapkan)
+
+- Pemilik melaporkan uji manual mode guru/siswa lulus: penolakan daftar siswa 403, refresh/tab tetap terkunci, PIN salah ditolak dan PIN benar kembali ke draf sama. Bukan bukti pembersihan cache/history atau kesiapan anak nyata.
+- Migrasi 008 menambah practice_responses privat dan RPC student_practice/save_student_practice. Hanya materi synthetic=true, protocol text-practice-v1 dengan satu item fase practice; bukan instrumen atau sesi skrining. Status assessment_sessions tetap draft. Tidak ada skor, koreksi jawaban, audio, AI, atau klaim diagnosis.
+- Setiap RPC memeriksa current_student_mode (kedaluwarsa, assignment, wali, notice). Save memakai lock mode+anak, idempotensi request_id dan satu respons per item; retry sama mengembalikan ID sama, isi berbeda ditolak tanpa overwrite. Guru membaca respons via RLS hanya setelah unlock dan izin masih tersedia. Belum ada UI review guru.
+- GET/POST `/api/student/practice` memakai flag sintetis yang sama; POST membutuhkan Origin staging. UI mode-test menambah Muat latihan dan simpan respons, mengingat request ID hanya di memori untuk retry. Tidak menyimpan data pribadi di browser. Tidak ada klaim click-through: browser/HP, SQL/RLS, konkurensi dan pengujian sukses/idempotensi database belum dieksekusi agen.
+- `supabase/tests/practice.sql` menguji akses tanpa mode dan direct insert ditolak (rollback). `supabase/tests/seed-synthetic-practice.sql` berbeda: fixture PERSISTEN operator, sekali saja, khusus akun manual 1326aa5a-f29a-4c00-bc5d-f2728d4eff1f dan materi fixture 90000000-0000-4000-8000-000000000001. Jalankan ketika mode guru sudah terbuka; membuat materi v2/draf baru tanpa menimpa v1. Hasil id_draf_latihan dipakai masuk mode siswa.
+- Verifikasi aktual: lint/typecheck/build exit 0, 5 file input test lulus; warning Node experimental/module detection tetap ada. Input practice pertama gagal modul belum ada lalu lulus. SQL belum dijalankan; tidak mengklaim red-green database. Belum commit/push.
+
 ## Koreksi policy sesi setelah migrasi 006
 
 - Pemilik menjalankan test teacher-mode dan mendapat SQLSTATE 42501 pada SELECT assessment_sessions: policy sessions_assigned_read masih mengacu OID fungsi lama yang di-rename menjadi assigned_child_without_mode dan dicabut hak EXECUTE-nya.

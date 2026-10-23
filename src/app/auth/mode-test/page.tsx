@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { Practice } from "./practice";
 
 type Mode = "checking" | "anonymous" | "teacher" | "student" | "locked" | "error";
 
@@ -121,7 +122,8 @@ export default function ModeTestPage() {
       </>}
       {(mode === "student" || mode === "locked") && <>
         <h2>{mode === "student" ? "Mode siswa uji" : "Sesi siswa tidak tersedia"}</h2>
-        <p>Tidak ada stimulus, jawaban, atau rekaman pada tahap ini. Kedaluwarsa tidak otomatis membuka hak guru.</p>
+        <p>Latihan sintetis saja, tanpa asesmen nyata atau rekaman. Kedaluwarsa tidak otomatis membuka hak guru.</p>
+        {mode === "student" && <Practice />}
         <form onSubmit={(event) => submit(event, "/api/teacher-mode/unlock", ["pin"])}>
           {pinField}<button type="submit">Kembali ke mode guru</button>
           <p>Lima PIN salah mengunci akses selama 15 menit. Login ulang tidak menghapus kunci.</p>
