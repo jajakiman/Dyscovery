@@ -1,5 +1,17 @@
 # Dyscovery: Implementation Progress
 
+## Hubungan wali dan persetujuan (migrasi 004 belum diterapkan)
+
+- Verifikasi lokal aktual: lint, typecheck, build exit 0; `node --experimental-strip-types --test tests/*.test.mjs` lulus 2 file uji (auth/consent input). Test input consent pertama gagal karena modul belum ada, kemudian lulus setelah implementasi. Warning Node experimental strip-types/module detection tetap muncul. SQL/RLS dan route end-to-end belum diuji; tidak mengklaim siklus red-green database. Belum commit/push.
+- Kebijakan disetujui pemilik: semua wali sah terverifikasi yang masih terhubung harus grant; jumlah sesuai kondisi anak, dapat satu atau lebih. Nol wali, keputusan kosong/deny/withdraw atau akun wali tidak aktif memblokir izin. Operator wajib memastikan daftar lengkap, bukan mencabut hubungan untuk melewati penolakan.
+- `202610230004_consents.sql`: guardian_links operator-only; consent_notices immutable dan disabled secara default; consent_events append-only. Tujuan activity/recording/ai terpisah. Tidak ada persetujuan berbagi laporan atau aktivasi AI pada tahap ini.
+- `record_guardian_consent` memeriksa auth.uid, role guardian terverifikasi, identitas terkonfirmasi, akun aktif dan hubungan. Tidak menerima actor dari browser; guru tidak dapat menyetujui atas nama wali. Keputusan diurutkan ID server, perubahan keputusan per anak diserialkan dengan row lock. Verifikasi ulang memerlukan persetujuan baru.
+- `has_effective_consent` hanya menjawab untuk wali sah atau guru yang ditugaskan; false untuk pengguna lain. Harus dipanggil ulang pada operasi pemrosesan kelak; belum ada sesi/upload/dispatch sehingga belum ada integrasi gerbang operasi tersebut.
+- GET `/api/guardian/consents?offset=0` membaca hubungan sendiri, pemberitahuan, dan riwayat sendiri (masing-masing maksimal 50, offset yang sama). POST menerima `{guardianLinkId,purpose,decision,noticeVersion,processingScopeVersion,confirmed:true}` dengan Origin staging. RPC juga dapat dipanggil langsung oleh wali sah; confirmed adalah validasi endpoint, bukan bukti wali telah membaca teks. Belum ada UI persetujuan.
+- Tidak membuat akun/role wali, pemberitahuan, atau fixture permanen otomatis. Teks pemberitahuan nyata, prosedur verifikasi wali/audit provisioning, rate limiting dan kebutuhan rilis tetap harus diselesaikan sebelum data anak nyata. Jangan memindahkan role akun guru uji menjadi wali: MVP satu role per akun.
+- Uji `supabase/tests/consents.sql` memakai rollback: satu dari dua wali belum cukup, semua grant cukup, withdrawal memblokir, satu wali sah cukup setelah pencabutan hubungan oleh operator, verifikasi ulang tidak memakai keputusan lama, akun suspended ditolak, akses wali lain ditolak. PostgreSQL lokal tidak tersedia dan Docker daemon tidak berjalan; uji database belum dieksekusi agen.
+- Pemilik sebelumnya melaporkan migrasi/test 003 dan akses daftar/detail siswa sintetis sesuai; bukan eksekusi database agen. Status guru uji dan fixture permanen sebelumnya perlu dibersihkan sebelum produksi.
+
 ## Penugasan dan akses siswa (kode tersedia, database belum diterapkan)
 
 - Verifikasi lokal tahap ini: `npm run lint`, `npm run typecheck`, dan `npm run build` selesai dengan exit 0. Ini tidak memvalidasi eksekusi SQL/RLS; migrasi 003 dan test database masih menunggu pengujian staging oleh operator. Belum commit/push.

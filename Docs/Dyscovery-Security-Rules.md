@@ -45,6 +45,7 @@ MVP tidak menyediakan dashboard AI real-time. Guru mendampingi langsung dan meni
 Pisahkan persetujuan kegiatan, perekaman, pengiriman ke AI, dan berbagi laporan. Simpan pemberi terverifikasi, waktu, cakupan, versi pemberitahuan, dan pencabutan. Jelaskan tujuan, penerima, penyedia, masa simpan, dan cara mencabut. Tidak ada centang persetujuan bawaan.
 
 - AI ditolak: tinjauan manual tetap tersedia.
+- Semua orang tua/wali sah terverifikasi yang masih terhubung pada anak harus menyetujui tujuan dan versi cakupan yang sama. Jumlah mengikuti kondisi anak, bukan wajib dua. Tanpa wali atau tanpa keputusan lengkap berarti belum berizin. Operator memverifikasi kelengkapan hubungan; pencabutan hubungan bukan jalan melewati penolakan. Akun wali suspended/deactivated tetap memblokir izin, bukan dianggap hilang dari kebutuhan persetujuan.
 - Rekaman ditolak: tugas terkait tidak dilakukan/belum dapat dinilai, bukan salah.
 - Anak tidak nyaman: jeda atau hentikan; izin wali tidak membenarkan pemaksaan.
 - Pencabutan menghentikan pemrosesan baru sesuai cakupan; penghentian sesi dan permintaan penghapusan adalah tindakan berbeda.

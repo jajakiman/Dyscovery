@@ -115,8 +115,10 @@ erDiagram
 3. `GUARDIAN_LINK` unik untuk `(guardian_id, child_id)`; status aktif memerlukan verifikasi. Jangan mengumpulkan dokumen identitas mentah bila referensi verifikasi cukup.
 4. `PSYCHOLOGIST_PROFILE.profile_id` hanya merujuk profil psikolog. Referensi kredensial dan bukti verifikasi memiliki akses terbatas, bukan otomatis data publik.
 5. `CONSENT_EVENT` adalah catatan append-only keputusan grant/deny/withdraw. Tujuan minimum: kegiatan, rekaman, AI. Cakupan menyertakan versi pemberitahuan dan pemrosesan/penyedia agar izin lama tidak otomatis mencakup penyedia baru.
-6. Backend menentukan izin efektif dari keputusan terbaru untuk hubungan, tujuan, dan cakupan yang tepat, serta validitas hubungan wali. Penanganan keputusan beberapa wali harus diselesaikan dalam kebijakan sebelum pilot; jangan menganggap satu grant selalu mengalahkan penolakan wali lain.
+6. Backend menentukan izin efektif dari keputusan terbaru untuk hubungan, tujuan, dan cakupan yang tepat, serta validitas hubungan wali. Keputusan pemilik: semua orang tua/wali sah terverifikasi yang masih terhubung harus memberikan grant; satu wali sah cukup bila hanya satu yang terhubung. Nol wali, keputusan kosong/deny/withdraw, atau akun wali tidak aktif berarti tidak berizin. Jumlah wali tidak dipatok dua; operator wajib memverifikasi kelengkapan sesuai kondisi tiap anak dan tidak mencabut hubungan untuk melewati penolakan.
 7. Pembagian laporan memakai izin spesifik di `REPORT_SHARE`, bukan consent AI yang dipakai ulang.
+
+Addendum migrasi 004: `guardian_links` memakai relationship parent/guardian, verifikasi dan pencabutan operator. `consent_notices` mengikat tujuan, versi pemberitahuan, teks dan cakupan immutable; operator hanya dapat mengubah enabled, revisi isi harus versi baru. Tidak ada pemberitahuan nyata/AI aktif bawaan. `consent_events` append-only dengan ID bigint berurutan dan recorded_at server. RPC hanya mencatat keputusan wali sendiri; keputusan sebelum verifikasi ulang tidak digunakan. Izin harus diperiksa lagi saat operasi pemrosesan dilakukan, bukan disalin menjadi boolean permanen. Migrasi ini belum dijalankan agen pada PostgreSQL.
 
 ## 3. ERD materi, sesi, rekaman, dan peninjauan
 
