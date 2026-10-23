@@ -1,5 +1,15 @@
 # Dyscovery: Implementation Progress
 
+## Materi versi tetap dan draf sesi (migrasi 005 belum diterapkan)
+
+- Pemilik melaporkan migrasi 004 dan seluruh test consent sukses; bukan eksekusi agen. Tahap ini membangun persiapan saja: sesi selalu draft, belum dapat dimulai sebelum isolasi mode siswa tersedia sesuai Workflow/Security Rules.
+- `202610230005_assessment_drafts.sql`: material_versions immutable (hanya approval_status dapat berubah), referensi versi consent kegiatan, dan assessment_sessions draft. content_hash adalah MD5 JSONB kanonik untuk penanda perubahan, bukan bukti autentisitas/kriptografi. Operator menerbitkan versi baru untuk perubahan materi. Tidak membuat instrumen, rubrik, klasifikasi, atau materi approved nyata secara otomatis.
+- RPC `create_assessment_draft` mengambil child dari assignment server-side, memverifikasi pemilik assignment, masa aktif/status, RLS helper dan consent kegiatan seluruh wali pada versi yang terikat materi. Lock anak menserialkan keputusan consent/pembuatan draft; retry pasangan assignment+material mengembalikan draft yang sama, namun tetap memeriksa izin ulang. Gerbang ini bukan izin permanen menjalankan sesi.
+- GET `/api/materials?offset=0`: materi approved untuk guru verified aktif; GET `/api/assessment-sessions?offset=0`: draft siswa yang masih ditugaskan dan consent/material masih sesuai. Masing-masing maksimal 50. POST `/api/assessment-sessions` menerima `{teacherAssignmentId,materialVersionId}` dengan Origin staging; tidak menerima child/status dari browser. Belum ada UI, detail route, kapabilitas siswa, respons, audio, skor, atau AI.
+- `supabase/tests/assessment-drafts.sql`: transaksi sintetis rollback untuk materi draft ditolak, izin kosong ditolak, pembuatan sah, retry idempotent, larangan update langsung, guru tanpa assignment ditolak, serta withdrawal memblokir baca/retry. Belum dieksekusi PostgreSQL oleh agen; pengujian konkurensi juga belum dilakukan. Jangan klaim kesiapan produksi.
+- Verifikasi lokal aktual: lint, typecheck, build exit 0; `node --experimental-strip-types --test tests/*.test.mjs` lulus 3 file input. Test input sesi awalnya gagal karena modul belum ada lalu lulus. Warning Node strip-types/module detection tetap muncul. SQL/RLS dan route end-to-end belum diuji. Belum commit/push.
+- Operator: jalankan migrasi 005 sekali setelah 004, lalu seluruh test assessment-drafts.sql sampai rollback. Tidak perlu fixture permanen atau data anak nyata. Langkah berikutnya: desain isolasi mode siswa, prosedur materi dan kontrak respons sebelum sesi dapat dimulai; izin rekaman tetap terpisah saat fitur rekaman dibuat.
+
 ## Hubungan wali dan persetujuan (migrasi 004 belum diterapkan)
 
 - Verifikasi lokal aktual: lint, typecheck, build exit 0; `node --experimental-strip-types --test tests/*.test.mjs` lulus 2 file uji (auth/consent input). Test input consent pertama gagal karena modul belum ada, kemudian lulus setelah implementasi. Warning Node experimental strip-types/module detection tetap muncul. SQL/RLS dan route end-to-end belum diuji; tidak mengklaim siklus red-green database. Belum commit/push.

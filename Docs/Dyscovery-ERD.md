@@ -122,6 +122,8 @@ Addendum migrasi 004: `guardian_links` memakai relationship parent/guardian, ver
 
 ## 3. ERD materi, sesi, rekaman, dan peninjauan
 
+Addendum implementasi migrasi 005: material_versions mengikat versi consent activity dengan FK, isi immutable dan status draft/approved/retired. content_hash MD5 definisi JSONB adalah penanda perubahan saja, bukan bukti autentisitas. assessment_sessions saat ini hanya draft, satu per assignment+material agar retry tidak menggandakan. Child diturunkan dari assignment di RPC tanpa grant INSERT langsung. Tema, presentation_context, started_at/ended_at, transisi sesi, respons dan kapabilitas siswa belum diimplementasikan. Pencabutan consent memblokir baca/pembuatan ulang tanpa menghapus bukti draft; operasi pemrosesan kelak wajib memeriksa ulang izin. Tidak ada instrumen penilaian nyata otomatis.
+
 `MATERIAL_VERSION` adalah paket materi immutable berisi stimulus/urutan tugas, rubrik, aturan bantuan, serta konfigurasi penyajian. `item_key` mengacu ke item dalam paket versi tersebut. Ini menghindari tabel bank soal yang belum dibutuhkan; bank soal relasional dapat ditambah bila pengelolaan item lintas paket diperlukan.
 
 ```mermaid
