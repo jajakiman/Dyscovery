@@ -1,36 +1,34 @@
 # Dyscovery: Entity Relationship Diagram
 
-**Versi:** 1.2, baseline dokumentasi tersinkron  
-**Tanggal:** 21 Oktober 2026  
+**Versi:** 1.3, integrasi modul petualangan gamifikasi & arsitektur final  
+**Tanggal:** 27 Oktober 2026  
 **Tagline:** Kenali risiko, temukan dukungan.  
-**Status:** rancangan logis awal, bukan migrasi SQL atau database yang sudah diterapkan.
+**Status:** Rancangan skema data logis final yang disepakati untuk implementasi database Supabase PostgreSQL.
 
-Acuan: [PRD](Dyscovery-PRD.md), [Security Rules](Dyscovery-Security-Rules.md), [Design System](Dyscovery-Design-System.md), dan [Workflow](Dyscovery-Workflow.md).
+Acuan: [PRD](Dyscovery-PRD.md), [Workflow](Dyscovery-Workflow.md), [Design System](Dyscovery-Design-System.md), dan [Security Rules](Dyscovery-Security-Rules.md).
 
-Diagram menggunakan Mermaid. Buka dalam penampil Markdown yang mendukung Mermaid. Diagram dipecah menjadi tiga bagian agar terbaca; entitas bernama sama adalah tabel yang sama, bukan duplikasi.
+---
 
-## 1. Notasi dan keputusan pemodelan
+## 1. Notasi dan Keputusan Pemodelan Arsitektur
 
-- `PK`: primary key; `FK`: foreign key; `UK`: unik satu kolom. Constraint gabungan dijelaskan terpisah.
-- `||`: tepat satu; `o|`: nol atau satu; `o{`: nol atau banyak; `|{`: satu atau banyak.
-- Field bertanda komentar `nullable` boleh kosong. Field lain dimaksudkan wajib pada model awal, kecuali dijelaskan pada aturan status.
-- UUID adalah usulan ID internal. Tipe dan nama belum merupakan DDL final.
-- Kolom waktu umum seperti `created_at`/`updated_at` tidak diulang pada setiap tabel; implementasi tetap memerlukannya sesuai kebutuhan audit.
-- Satu anak berada pada satu sekolah aktif dalam MVP. Riwayat perpindahan sekolah belum dimodelkan; sebelum menambah fitur itu, tentukan pemisahan akses terhadap data lama.
-- Satu akun memiliki satu peran produk dalam MVP: guru, wali, atau psikolog. Multi-peran belum diperlukan. Operator infrastruktur bukan peran akun publik.
-- Siswa tidak memiliki akun. `STUDENT_ACCESS` adalah kapabilitas sesi yang dapat dicabut, bukan akun anak.
-- Identitas utama umum dan childish; hutan hanya tema modul gamifikasi. Data tema tidak memerlukan tabel tersendiri atau theme engine MVP; simpan identitas tema pada konfigurasi sesi.
-- Stack: Next.js, React, TypeScript, Tailwind CSS, Node.js, Supabase, dan Vercel dengan target Rp0 sesuai ketentuan/kuota gratis. Model pretrained opsional hanya pascarekaman; training, fine-tuning, real-time, dan AI generatif saran di luar MVP.
+- **Notasi Hubungan:** `||`: tepat satu; `o|`: nol atau satu; `o{`: nol atau banyak; `|{`: satu atau banyak.
+- **Tipe Kunci:** `PK`: Primary Key (UUID v4 default); `FK`: Foreign Key; `UK`: Unique Constraint.
+- **Atribut Nullable:** Field bertanda `"nullable"` diperbolehkan bernilai NULL sesuai siklus hidup entitas.
+- **Modul Petualangan Gamifikasi (*Adventure Gamification Encounters*):**
+  - Entitas `MATERIAL_VERSION.definition` menyimpan struktur narasi petualangan, dialog cerita, jenis babak (*letter_arrange*, *spelling_image*, *word_read*, *passage_read*, *comprehension*), kunci stimulus, dan rubrik penilaian.
+  - Entitas `TASK_ATTEMPT` mengakomodasi berbagai jenis respons interaktif siswa (susunan ubin huruf, pilihan visual, atau penanda tugas lisan) melalui atribut `response` (JSON) dan status pengerjaan.
+- **Model Perangkat Tunggal (Single Teacher Device):** Siswa **TIDAK** memiliki akun pengguna (`auth.users`) atau profil relasional. `STUDENT_ACCESS` adalah kapabilitas sesi sementara dengan *token hash* yang terkunci di sisi server (*Server-Side Student Access Lock*) pada laptop/desktop guru (1440×900px).
+- **Analisis AI Pascarekaman Murni (Post-Recording 2–15 Detik):** Model data secara eksplisit **TIDAK MEMILIKI TABEL STREAMING REAL-TIME**, tidak ada tabel *audio chunking*, dan tidak ada tabel *live alignment socket*. Pemrosesan AI dimulai hanya setelah entitas `RECORDING` berstatus `ready` di Supabase Private Storage.
+- **Asisten Draf Guru (Drafting Assistant):** Relasi antara `AI_ANNOTATION` dan `REVIEW_ANNOTATION` menghubungkan draf usulan AI ke keputusan verifikasi guru pada antarmuka *split-view*, memangkas waktu kerja manual guru hingga 80–90%.
+- **Direktori Psikolog Terverifikasi:** Entitas `PSYCHOLOGIST_PROFILE` menyimpan data publik terstandar (Avatar URL, Nama Lengkap, Nomor Kredensial STR/NIP, Nama Fasilitas/Klinik) untuk ditampilkan pada komponen kartu direktori.
+- **Izin Berbagi Berbatas Waktu (Time-Bound Access):** Entitas `REPORT_SHARE` mencatat izin pembagian laporan observasi dari orang tua kepada psikolog tertentu, mengikat versi laporan spesifik dengan tanggal kedaluwarsa (`expires_at`), serta mengecualikan rekaman audio secara default.
+- **Target Operasional Rp0:** Struktur skema dioptimalkan untuk berjalan pada Supabase PostgreSQL Free Tier dengan Row Level Security (RLS) terisolasi.
 
-## 2. ERD identitas, sekolah, dan persetujuan
+---
 
-Addendum penugasan: migrasi 003 menambahkan school_id pada TEACHER_ASSIGNMENT untuk FK gabungan (school_member_id, school_id) dan (child_id, school_id). Ini menjamin sekolah sama tanpa mengandalkan input aplikasi. CHILD.grade dibatasi '2' untuk MVP. Entitas hanya dapat diprovisikan operator pada tahap ini; guru memperoleh read siswa berdasarkan RLS, bukan akses seluruh sekolah. Migrasi/test database belum dijalankan agen.
+## 2. ERD Identitas, Sekolah, Penugasan, dan Persetujuan
 
-### Addendum implementasi fondasi identitas
-
-Migrasi `supabase/migrations/202610230001_identity.sql` menambahkan `PROFILE.full_name` (nullable sebelum onboarding) dan `identity_confirmed_at` (konfirmasi pengguna, bukan verifikasi profesi), serta `TEACHER_PROFILE(profile_id PK/FK, nip nullable)`. Timestamp created_at/updated_at tersedia pada kedua tabel. `display_name` nullable sebelum onboarding. `product_role` nullable sampai ditetapkan oleh proses berwenang; tidak diisi dari metadata OAuth. Baris profil guru dapat menyimpan data pengajuan dan tidak membuktikan role/profesi atau memberikan izin. NIP berbentuk teks 18 digit, opsional, tidak dianggap validasi pemerintah dan belum diberi constraint unik. Pengguna hanya dapat mengubah nama sendiri; perubahan full_name membatalkan konfirmasi. Penulisan konfirmasi dan NIP lewat onboarding belum diimplementasikan. Migrasi ini belum diterapkan pada staging oleh agen.
-
-`AUTH_USER` mewakili `auth.users` yang dikelola Supabase; Dyscovery tidak menyimpan password. Tabel profil terhubung satu-ke-satu bila profil telah dibuat.
+Bagian ini mengelola pengguna dewasa (Guru, Orang Tua, Psikolog), sekolah, penugasan siswa, hubungan perwalian, serta pencatatan persetujuan (*immutable consent*).
 
 ```mermaid
 erDiagram
@@ -50,22 +48,31 @@ erDiagram
     }
     PROFILE {
         uuid id PK, FK
-        string display_name
+        string full_name "nullable"
+        string display_name "nullable"
         string product_role
         string verification_status
         string account_status
+        datetime identity_confirmed_at "nullable"
+        datetime created_at
+        datetime updated_at
     }
     SCHOOL {
         uuid id PK
         string name
+        string npsn "nullable"
+        string address "nullable"
         string verification_status
+        datetime created_at
     }
     SCHOOL_MEMBER {
         uuid id PK
         uuid school_id FK
         uuid profile_id FK
+        string role
         string status
         datetime verified_at "nullable"
+        datetime created_at
     }
     CHILD {
         uuid id PK
@@ -73,14 +80,17 @@ erDiagram
         string display_name
         string grade
         string status
+        datetime created_at
     }
     TEACHER_ASSIGNMENT {
         uuid id PK
         uuid school_member_id FK
         uuid child_id FK
+        uuid school_id FK
         datetime starts_at
         datetime ends_at "nullable"
         string status
+        datetime created_at
     }
     GUARDIAN_LINK {
         uuid id PK
@@ -90,12 +100,19 @@ erDiagram
         string verification_status
         datetime verified_at "nullable"
         datetime revoked_at "nullable"
+        datetime created_at
     }
     PSYCHOLOGIST_PROFILE {
         uuid profile_id PK, FK
-        string credential_reference
+        string avatar_url "nullable"
+        string credential_id
+        string credential_type
+        string institution_name
+        string clinic_address "nullable"
         string verification_status
         datetime verified_at "nullable"
+        datetime created_at
+        datetime updated_at
     }
     CONSENT_EVENT {
         uuid id PK
@@ -108,23 +125,25 @@ erDiagram
     }
 ```
 
-### Aturan identitas dan consent
+### Aturan Integritas Identitas dan Persetujuan
+1. `PROFILE.product_role`: Dibatasi nilai `'teacher'`, `'guardian'`, atau `'psychologist'`. Siswa tidak memiliki profil.
+2. `CHILD.grade`: Dibatasi nilai `'2'` untuk cakupan MVP kelas 2 SD.
+3. `TEACHER_ASSIGNMENT`: Mengikat `(school_member_id, child_id, school_id)` untuk memastikan guru dan siswa berada di sekolah yang sama. Penugasan harus berstatus `'active'` agar guru dapat menginisiasi sesi asesmen.
+4. `PSYCHOLOGIST_PROFILE`: Menyimpan data kredensial profesional:
+   - `credential_id`: Nomor Surat Tanda Registrasi (STR) Psikolog Klinis atau NIP resmi.
+   - `credential_type`: Jenis kredensial (misalnya `'STR_PSIKOLOG_KLINIS'` atau `'NIP_INSTITUSI'`).
+   - `institution_name`: Nama fasilitas layanan psikologi, rumah sakit, atau biro konsultasi terdaftar.
+   - `avatar_url`: Tautan berkas foto profil resmi yang disajikan pada kartu Direktori Psikolog.
+5. `CONSENT_EVENT`: Tabel *append-only* yang mencatat persetujuan orang tua secara granular:
+   - `purpose`: `'activity'` (kegiatan petualangan literasi), `'recording'` (perekaman audio digital), dan `'ai_processing'` (analisis AI pascarekaman).
+   - `decision`: `'grant'` (diberikan), `'deny'` (ditolak), atau `'withdraw'` (dicabut).
+   - Penolakan izin AI tidak menghambat pelaksanaan sesi membaca atau peninjauan manual guru.
 
-1. `SCHOOL_MEMBER` unik untuk pasangan `(school_id, profile_id)`; hanya profil guru terverifikasi dapat menjadi guru aktif.
-2. `TEACHER_ASSIGNMENT` harus menghubungkan guru dan anak pada sekolah yang sama. Ini perlu constraint/trigger atau transaksi terkontrol, bukan asumsi dari FK tunggal.
-3. `GUARDIAN_LINK` unik untuk `(guardian_id, child_id)`; status aktif memerlukan verifikasi. Jangan mengumpulkan dokumen identitas mentah bila referensi verifikasi cukup.
-4. `PSYCHOLOGIST_PROFILE.profile_id` hanya merujuk profil psikolog. Referensi kredensial dan bukti verifikasi memiliki akses terbatas, bukan otomatis data publik.
-5. `CONSENT_EVENT` adalah catatan append-only keputusan grant/deny/withdraw. Tujuan minimum: kegiatan, rekaman, AI. Cakupan menyertakan versi pemberitahuan dan pemrosesan/penyedia agar izin lama tidak otomatis mencakup penyedia baru.
-6. Backend menentukan izin efektif dari keputusan terbaru untuk hubungan, tujuan, dan cakupan yang tepat, serta validitas hubungan wali. Keputusan pemilik: semua orang tua/wali sah terverifikasi yang masih terhubung harus memberikan grant; satu wali sah cukup bila hanya satu yang terhubung. Nol wali, keputusan kosong/deny/withdraw, atau akun wali tidak aktif berarti tidak berizin. Jumlah wali tidak dipatok dua; operator wajib memverifikasi kelengkapan sesuai kondisi tiap anak dan tidak mencabut hubungan untuk melewati penolakan.
-7. Pembagian laporan memakai izin spesifik di `REPORT_SHARE`, bukan consent AI yang dipakai ulang.
+---
 
-Addendum migrasi 004: `guardian_links` memakai relationship parent/guardian, verifikasi dan pencabutan operator. `consent_notices` mengikat tujuan, versi pemberitahuan, teks dan cakupan immutable; operator hanya dapat mengubah enabled, revisi isi harus versi baru. Tidak ada pemberitahuan nyata/AI aktif bawaan. `consent_events` append-only dengan ID bigint berurutan dan recorded_at server. RPC hanya mencatat keputusan wali sendiri; keputusan sebelum verifikasi ulang tidak digunakan. Izin harus diperiksa lagi saat operasi pemrosesan dilakukan, bukan disalin menjadi boolean permanen. Migrasi ini belum dijalankan agen pada PostgreSQL.
+## 3. ERD Materi, Petualangan, Sesi, Rekaman, dan Verifikasi Guru
 
-## 3. ERD materi, sesi, rekaman, dan peninjauan
-
-Addendum implementasi migrasi 005: material_versions mengikat versi consent activity dengan FK, isi immutable dan status draft/approved/retired. content_hash MD5 definisi JSONB adalah penanda perubahan saja, bukan bukti autentisitas. assessment_sessions saat ini hanya draft, satu per assignment+material agar retry tidak menggandakan. Child diturunkan dari assignment di RPC tanpa grant INSERT langsung. Tema, presentation_context, started_at/ended_at, transisi sesi, respons dan kapabilitas siswa belum diimplementasikan. Pencabutan consent memblokir baca/pembuatan ulang tanpa menghapus bukti draft; operasi pemrosesan kelak wajib memeriksa ulang izin. Tidak ada instrumen penilaian nyata otomatis.
-
-`MATERIAL_VERSION` adalah paket materi immutable berisi stimulus/urutan tugas, rubrik, aturan bantuan, serta konfigurasi penyajian. `item_key` mengacu ke item dalam paket versi tersebut. Ini menghindari tabel bank soal yang belum dibutuhkan; bank soal relasional dapat ditambah bila pengelolaan item lintas paket diperlukan.
+Bagian ini memodelkan materi petualangan interaktif yang bersifat immutable, sesi asesmen pada perangkat guru, tugas interaktif (*task attempt*), penyimpanan berkas audio, analisis AI pascarekaman (2–15 detik), dan antarmuka peninjauan guru (*split-view*).
 
 ```mermaid
 erDiagram
@@ -151,6 +170,7 @@ erDiagram
         string approval_status
         json definition
         string content_hash
+        datetime created_at
     }
     ASSESSMENT_SESSION {
         uuid id PK
@@ -162,22 +182,27 @@ erDiagram
         json presentation_context
         datetime started_at "nullable"
         datetime ended_at "nullable"
+        datetime created_at
     }
     STUDENT_ACCESS {
         uuid id PK
         uuid session_id FK
         string token_hash UK
+        string lock_status
         datetime expires_at
         datetime revoked_at "nullable"
+        datetime created_at
     }
     TASK_ATTEMPT {
         uuid id PK
         uuid session_id FK
         string item_key
+        string encounter_type
         string phase
         int attempt_number
         json response "nullable"
         string status
+        datetime created_at
     }
     SESSION_EVENT {
         uuid id PK
@@ -195,6 +220,8 @@ erDiagram
         string content_hash "nullable"
         int duration_ms "nullable"
         int byte_size "nullable"
+        string mime_type "nullable"
+        datetime created_at
     }
     AI_ANALYSIS {
         uuid id PK
@@ -205,7 +232,9 @@ erDiagram
         string input_hash
         string idempotency_key UK
         string status
+        int processing_latency_ms "nullable"
         datetime completed_at "nullable"
+        datetime created_at
     }
     AI_ANNOTATION {
         uuid id PK
@@ -216,6 +245,8 @@ erDiagram
         int audio_end_ms "nullable"
         string annotation_type
         string observed_text "nullable"
+        float confidence_score "nullable"
+        datetime created_at
     }
     REVIEW_REVISION {
         uuid id PK
@@ -225,6 +256,7 @@ erDiagram
         string status
         json rubric_result "nullable"
         datetime finalized_at "nullable"
+        datetime created_at
     }
     REVIEW_ANNOTATION {
         uuid id PK
@@ -234,26 +266,38 @@ erDiagram
         string finding
         json evidence_location "nullable"
         string note "nullable"
+        datetime created_at
     }
 ```
 
-### Aturan sesi dan hasil
+### Aturan Integritas Sesi, Petualangan, Audio, dan Verifikasi Guru
+1. `STUDENT_ACCESS`: Mengimplementasikan *Server-Side Student Access Lock*. Saat `lock_status = 'locked'`, API server menolak seluruh permintaan berprivilege guru. Membuka kunci membutuhkan PIN/re-autentikasi guru (`revoked_at` terisi).
+2. `MATERIAL_VERSION`: Bersifat *immutable*. Definisi babak petualangan gamifikasi (dialog Piko, ubin huruf buah kelapa, stimulus kata/teks Nunito Sans 26–28px) dan rubrik penilaian tersimpan dalam format JSON dengan hash validasi (`content_hash`).
+3. `TASK_ATTEMPT`:
+   - `encounter_type`: `'letter_arrange'` (menyusun huruf buah kelapa), `'spelling_image'` (mengeja gambar jejak), `'word_read'` (membaca kata nyata/semu), `'passage_read'` (membaca teks lisan), atau `'comprehension'` (pemahaman sahabat hutan).
+   - `phase`: Dibatasi `'practice'` (latihan bersama Piko, tidak masuk skor) atau `'screening'` (skrining resmi).
+   - `response`: JSON fleksibel menyimpan susunan huruf, pilihan ganda, atau status rekaman audio.
+4. `RECORDING`:
+   - Menyimpan referensi berkas audio privat pada Supabase Storage (`storage_object_key`) khusus tugas membaca lisan.
+   - `upload_status`: `'pending'`, `'uploading'`, `'ready'`, `'failed'`, atau `'deleted'`.
+   - Audio yang terputus atau gagal unggah tidak boleh dianggap sebagai kesalahan membaca siswa.
+5. `AI_ANALYSIS`:
+   - **Strictly Post-Recording:** Hanya dapat diinisiasi ketika `RECORDING.upload_status = 'ready'`.
+   - `status`: `'queued'`, `'running'`, `'completed'`, `'failed'`, atau `'cancelled'`.
+   - `processing_latency_ms`: Mencatat durasi inferensi model (ditargetkan dalam rentang 2.000 ms hingga 15.000 ms).
+   - Menggunakan `idempotency_key` untuk mencegah pemrosesan ganda pada rekaman yang sama.
+6. `AI_ANNOTATION`:
+   - Draf kandidat anotasi yang diselaraskan dengan garis waktu audio (`audio_start_ms`, `audio_end_ms`) dan rentang karakter teks stimulus (`reference_start`, `reference_end`).
+   - `annotation_type`: `'match'`, `'substitution'`, `'omission'`, `'repetition'`, `'hesitation'`, atau `'unclear'`.
+7. `REVIEW_REVISION` & `REVIEW_ANNOTATION`:
+   - Antarmuka *Teacher Verification Split-View* memetakan `source_ai_annotation_id` ke anotasi yang divalidasi atau dikoreksi guru.
+   - Mengurangi beban transkripsi guru sebesar 80–90%. Guru memfinalisasi hasil evaluasi menjadi `REVIEW_REVISION` yang bersifat *immutable* setelah status `'finalized'`.
 
-- Anak pada sesi harus sama dengan anak pada penugasan. Penugasan harus aktif saat akses diberikan; riwayat penugasan lama tetap dapat dipertahankan tanpa memberi izin aktif.
-- `MATERIAL_VERSION` unik untuk `(material_key, version)`. Paket yang dipakai sesi tidak diubah di tempat. Paket latihan dan skrining memiliki item berbeda; item dan fase harus divalidasi terhadap `definition`.
-- `TASK_ATTEMPT` unik untuk `(session_id, item_key, phase, attempt_number)`. Fase `practice` tidak ikut skor skrining. Respons kosong karena tugas dilewati tidak berarti salah.
-- `STUDENT_ACCESS` hanya menyimpan hash rahasia, bukan token mentah; mencabut akses guru di perangkat memerlukan kontrol tambahan dan tidak otomatis diselesaikan tabel ini.
-- `SESSION_EVENT` merekam bantuan guru, jeda, kendala teknis, dan penghentian. Aktor harus guru berwenang; event teknis otomatis dapat dicatat pada audit, tanpa menyamar sebagai catatan guru.
-- `RECORDING` menyimpan referensi private Storage, bukan blob atau signed URL. Setelah validasi, hash mengikat input analisis. Metadata audio yang belum diketahui boleh kosong. Status minimum: pending, uploading, ready, failed, deleted.
-- `AI_ANALYSIS` status minimum: queued, running, completed, failed, cancelled. Pengiriman tetap memeriksa consent dan gerbang penyedia; tidak ada analisis juga sah untuk alur manual.
-- `presentation_context` mencatat konfigurasi tampilan, kelas perangkat, dan browser secukupnya untuk menelusuri penyajian; bukan fingerprint untuk pelacakan. Dashboard responsif tidak otomatis membuktikan kesetaraan asesmen antarperangkat.
-- `AI_ANALYSIS` hanya dimulai setelah rekaman ready dan input tervalidasi. Model pretrained tidak dilatih/fine-tune untuk MVP. Tidak ada tabel potongan streaming, dataset pelatihan, atau job training.
-- Lokasi kata/timestamp nullable: jangan mengarang bukti waktu. Gunakan rentang yang konsisten dan validasi batas terhadap materi serta durasi audio.
-- `REVIEW_REVISION` unik untuk `(task_attempt_id, revision)`. Revisi final immutable; koreksi menghasilkan revisi baru. Simpan kandidat AI terpisah. Guru dapat menambah anotasi manual tanpa sumber AI.
-- Jika anotasi tinjauan memiliki sumber AI atau rekaman, semuanya harus milik task attempt yang sama. FK tunggal tidak cukup untuk menjamin hal ini.
-- `rubric_result` tidak boleh memuat klasifikasi yang belum disetujui. Ketidaklengkapan tetap eksplisit, bukan nilai nol.
+---
 
-## 4. ERD laporan, pedoman, berbagi, dan konsultasi
+## 4. ERD Laporan, Pedoman, Berbagi, dan Konsultasi
+
+Bagian ini memodelkan laporan observasi sekolah, penerapan pedoman tindak lanjut berbasis aturan, Direktori Psikolog, pembagian data berbatas waktu, dan permohonan konsultasi klinis.
 
 ```mermaid
 erDiagram
@@ -277,6 +321,7 @@ erDiagram
         json approved_rules
         string approval_status
         string approval_reference "nullable"
+        datetime created_at
     }
     REPORT_VERSION {
         uuid id PK
@@ -289,6 +334,7 @@ erDiagram
         string follow_up_text "nullable"
         uuid published_by FK "nullable"
         datetime published_at "nullable"
+        datetime created_at
     }
     REPORT_REVIEW {
         uuid report_version_id PK, FK
@@ -304,6 +350,7 @@ erDiagram
         datetime granted_at
         datetime expires_at "nullable"
         datetime revoked_at "nullable"
+        datetime created_at
     }
     CONSULTATION_REQUEST {
         uuid id PK
@@ -312,6 +359,9 @@ erDiagram
         uuid report_share_id FK "nullable"
         datetime requested_time "nullable"
         string status
+        string notes "nullable"
+        datetime created_at
+        datetime updated_at
     }
     AUDIT_EVENT {
         uuid id PK
@@ -324,22 +374,51 @@ erDiagram
     }
 ```
 
-### Aturan laporan dan konsultasi
+### Aturan Integritas Laporan, Berbagi, dan Konsultasi
+1. `REPORT_VERSION`:
+   - Diterbitkan oleh guru yang berwenang (`published_by`).
+   - `findings_snapshot`: Menyimpan data permanen performa babak petualangan dan observasi membaca lisan (akurasi, pola fonologis, durasi baca, catatan pendampingan) tanpa vonis diagnosis otomatis disleksia.
+   - `status`: `'draft'` atau `'published'`. Begitu diterbitkan, baris ini bersifat *immutable*. Koreksi berikutnya menghasilkan nomor versi baru (`version = version + 1`).
+2. `GUIDANCE_VERSION`:
+   - Mengatur saran tindak lanjut pedagogis sekolah secara deterministik berbasis aturan (*rule-based decision tree*), **BUKAN menggunakan Generative AI / LLM**.
+   - Setiap narasi saran wajib telah disetujui tim ahli pendidikan dan psikologi (`approval_status = 'approved'`).
+3. `REPORT_SHARE` (Izin Berbagi Berbatas Waktu):
+   - Menghubungkan orang tua (`guardian_link_id`) dengan psikolog klinis terverifikasi (`psychologist_id`) dari direktori.
+   - `expires_at`: Wajib ditentukan untuk membatasi masa akses psikolog (*time-bound access*, misalnya 30 hari kalender).
+   - `scope`: JSON yang membatasi hak baca:
+     - Hanya versi laporan yang dipilih (`report_version_id`).
+     - Berkas rekaman audio mentah (`RECORDING`) secara *default* dikecualikan (`"include_audio": false`) kecuali diaktifkan secara eksplisit oleh orang tua.
+   - `revoked_at`: Menghentikan akses seketika jika orang tua mencabut izin sebelum batas kedaluwarsa.
+4. `CONSULTATION_REQUEST`:
+   - Permohonan jadwal konsultasi klinis awal dari orang tua kepada psikolog yang dipilih dari direktori.
+   - `status`: `'pending'`, `'accepted'`, `'declined'`, atau `'completed'`.
+   - Konsultasi dan percakapan psikologis tidak dapat diakses atau dilihat oleh pihak guru sekolah untuk menjaga kerahasiaan medis.
+5. `AUDIT_EVENT`:
+   - Jejak audit *append-only* yang mencatat setiap peristiwa akses data laporan anak, perubahan izin, pembagian laporan ke psikolog, dan tindakan autentikasi.
 
-1. `REPORT_VERSION` unik untuk `(session_id, version)` dan immutable setelah terbit. Draf boleh direvisi sebelum terbit. Kolom penerbit/waktu wajib terisi ketika status published.
-2. `REPORT_REVIEW` mengikat laporan ke revisi tinjauan tertentu dari sesi yang sama. Snapshot mempertahankan temuan, versi materi/rubrik, bantuan relevan, dan batas interpretasi saat terbit. Perubahan tinjauan tidak mengubah laporan lama.
-3. `GUIDANCE_VERSION` unik untuk `(guidance_key, version)`. Saran hanya dari pedoman approved, ditinjau sebelum publikasi. Tanpa pedoman, saran dapat kosong; jangan menghasilkan rujukan otomatis dari model bebas.
-4. `follow_up_origin` hanya rule/manual dalam MVP. Narasi berasal dari pedoman approved atau penulisan pihak berwenang, bukan AI generatif. Temuan laporan tidak disamakan dengan diagnosis. Penambahan AI generatif memerlukan persetujuan scope dan perubahan model data yang ditinjau.
-5. `REPORT_SHARE` mengikat satu laporan, wali sah untuk anak pada laporan tersebut, dan satu psikolog terverifikasi. `scope` tidak boleh memperluas data di luar versi itu; audio dikecualikan secara default.
-6. Pencabutan mempertahankan riwayat. Pemberian izin kembali membuat baris baru, bukan menghapus bukti pencabutan. Izin efektif juga memeriksa hubungan wali, akun penerima, kedaluwarsa, dan status laporan.
-7. Permintaan konsultasi tidak otomatis memberikan akses laporan. `report_share_id` opsional; bila diisi, anak, wali, dan psikolog harus cocok serta izin masih aktif saat data diakses.
-8. Konsultasi hanya mencakup permintaan penjadwalan dalam MVP. Pesan, catatan klinis, pembayaran, dan video tidak dimodelkan sebelum scope disetujui.
-9. Audit memakai referensi objek generik, bukan FK yang menjamin semua jenis objek. Isi dibatasi, akses dikontrol, dan penghapusan data tidak boleh tanpa sengaja menghapus bukti audit yang masih wajib dipertahankan. Retensi/pseudonimisasi audit perlu kebijakan tersendiri.
+---
 
-## 5. Batas integritas dan implementasi
+## 5. Ringkasan Entitas Inti dan Tidak Ada Tabel Streaming
 
-FK saja tidak menjamin role, sekolah, kepemilikan lintas tabel, persetujuan aktif, atau hak baca. Implementasi wajib menggabungkan constraint/trigger yang sesuai, transaksi server, RLS, dan kebijakan Storage. Tidak boleh ada jalur browser langsung yang melewati aturan ini.
+| Nama Entitas | Fungsi Utama | Keterangan Arsitektural |
+|---|---|---|
+| `PROFILE` | Data profil pengguna terautentikasi | Khusus Guru, Orang Tua, dan Psikolog. Siswa tidak memiliki akun. |
+| `TEACHER_ASSIGNMENT` | Penugasan guru ke siswa di sekolah yang sama | Memvalidasi hak akses guru sebelum sesi skrining dibuka. |
+| `CONSENT_EVENT` | Pencatat persetujuan wali murid | *Immutable consent logger* untuk kegiatan, audio, dan AI. |
+| `MATERIAL_VERSION` | Paket definisi petualangan dan stimulus | Menyimpan narasi petualangan, tugas susun huruf, dan teks kartu stimulus. |
+| `ASSESSMENT_SESSION` | Sesi asesmen pada single teacher device | Menyimpan konteks desktop (1440×900px), tema petualangan hutan, dan status sesi. |
+| `STUDENT_ACCESS` | Kunci sesi siswa sementara | Mengisolasi akses siswa via *Server-Side Student Access Lock*. |
+| `TASK_ATTEMPT` | Percobaan babak petualangan gamifikasi | Mencatat respons babak susun kelapa/huruf, eja gambar, kata, dan teks lisan. |
+| `RECORDING` | Metadata berkas audio di private storage | Menyimpan referensi bucket privat, hash berkas, dan status unggah. |
+| `AI_ANALYSIS` | Catatan analisis AI pascarekaman | Pemrosesan 2–15 detik tanpa streaming real-time; dilengkapi idempotency key. |
+| `AI_ANNOTATION` | Usulan kandidat anotasi bacaan oleh AI | Menghasilkan draf awal untuk menghemat 80–90% waktu peninjauan guru. |
+| `REVIEW_REVISION` | Hasil verifikasi dan rubrik guru | Memvalidasi usulan draf AI via *Teacher Verification Split-View*. |
+| `REVIEW_ANNOTATION` | Anotasi final keputusan guru | Menyimpan bukti temuan bacaan yang diselaraskan dengan garis waktu audio. |
+| `GUIDANCE_VERSION` | Pedoman saran tindak lanjut berbasis aturan | Rule-based engine approved ahli; murni tanpa Generative AI / LLM. |
+| `REPORT_VERSION` | Laporan observasi resmi immutable | Dokumen hasil observasi sekolah; bukan diagnosis medis. |
+| `PSYCHOLOGIST_PROFILE` | Profil psikolog dalam direktori resmi | Menyimpan avatar, nama, nomor STR/NIP, dan klinik/institusi. |
+| `REPORT_SHARE` | Jembatan data aman berbatas waktu | Mengatur izin pembagian laporan ke psikolog dengan tanggal kedaluwarsa. |
+| `CONSULTATION_REQUEST` | Permohonan konsultasi ke psikolog | Memfasilitasi rujukan diagnosis klinis resmi oleh psikolog berwenang. |
+| `AUDIT_EVENT` | Pencatatan jejak audit sistem | Append-only; mencatat seluruh peristiwa keamanan data tanpa data rahasia. |
 
-Belum ditentukan: interval retensi, prosedur penghapusan/backup, kebijakan beberapa wali, instrumen/rubrik, provider AI yang sesuai, dan riwayat perpindahan sekolah. Jangan menerapkan cascade delete luas sebelum konsekuensi bukti, laporan, dan retensi disepakati.
-
-Tidak dibuat tabel diagnosis/risiko otomatis, chat, billing, atau model konfigurasi generik. Tambahkan hanya ketika scope dan dasar penggunaannya tersedia.
+*Konfirmasi Arsitektur: Tidak terdapat tabel `AUDIO_STREAM_CHUNK`, `WEBSOCKET_SESSION`, `LIVE_TRANSCRIPTION`, atau `AI_CHAT_LOG` dalam database Dyscovery.*

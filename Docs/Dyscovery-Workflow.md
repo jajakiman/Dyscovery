@@ -1,203 +1,229 @@
 # Dyscovery: Diagram Workflow Sistem
 
-**Versi:** 1.2, baseline dokumentasi tersinkron  
-**Tanggal:** 21 Oktober 2026  
+**Versi:** 1.3, integrasi modul petualangan gamifikasi & arsitektur final  
+**Tanggal:** 27 Oktober 2026  
 **Tagline:** Kenali risiko, temukan dukungan.  
-**Status:** rancangan alur berdasarkan keputusan produk; bukan bukti aplikasi sudah dibangun atau diuji.
+**Status:** Rancangan alur sistem, alur petualangan gamifikasi, dan diagram proses yang disepakati.
 
 Acuan: [PRD](Dyscovery-PRD.md), [ERD](Dyscovery-ERD.md), [Security Rules](Dyscovery-Security-Rules.md), dan [Design System](Dyscovery-Design-System.md).
 
-Diagram Mermaid dapat dibaca melalui penampil Markdown yang mendukung Mermaid. AI merupakan fitur opsional dengan gerbang penyedia; kegagalannya tidak menonaktifkan alur manual. Tidak ada diagnosis otomatis.
+---
 
-Baseline: Next.js + React + TypeScript + Tailwind CSS, backend Node.js terintegrasi, Supabase dan Vercel dengan target Rp0 sesuai ketentuan/kuota gratis. Seluruh alur responsif desktop/laptop, tablet, dan handphone; dukungan tiap tugas asesmen ditetapkan melalui pengujian perangkat. Konteks penyajian dicatat pada sesi.
+## Ringkasan Prinsip Arsitektur Workflow
 
-Identitas platform umum, childish, dan playful; hutan pixel art hanya tema modul asesmen gamifikasi. Model pretrained opsional menganalisis audio setelah tersimpan; tidak ada training/fine-tuning, real-time, atau AI generatif saran dalam MVP. Saran memakai aturan/narasi ahli atau penulisan manual yang ditinjau.
+1. **Modul Petualangan Interaktif Gamifikasi (*Dora-Style Adventure*):** Aktivitas asesmen dikemas ke dalam perjalanan eksplorasi naratif bersama Maskot Piko (mencari buah kelapa, menyusun ubin huruf, membaca sandi kata, membaca prasasti cerita lisan).
+2. **Integritas Penilaian Membaca:** Pada saat anak membaca kata/teks lisan, antarmuka menyajikan kartu stimulus yang tenang dan stabil (Nunito Sans 26–28px di latar `#FAF8F4`), dan **Maskot Piko WAJIB DISEMBUNYIKAN TOTAL** untuk mencegah distraksi visual dan kecemasan membaca (*reading anxiety*).
+3. **Perangkat Tunggal Guru (Single Teacher Device 1440×900px):** Seluruh sesi asesmen sekolah dijalankan pada laptop/desktop guru. Siswa tidak memiliki akun, melainkan berinteraksi melalui **Mode Siswa Sementara (*Student Mode*)** yang dikunci di sisi server (*Server-Side Student Access Lock*).
+4. **Pemrosesan AI Pascarekaman (Post-Recording 2–15 Detik):** AI ucapan bekerja strictly pascarekaman setelah audio aman tersimpan di Supabase Private Storage. Tidak ada streaming real-time, live alignment, atau LLM generatif. AI bertindak sebagai *drafting assistant* yang memangkas beban kerja guru hingga 80–90%.
+5. **Pemisahan Skrining Sekolah & Diagnosis Klinis:** Sekolah melakukan observasi objektif. Diagnosis resmi diserahkan kepada psikolog melalui **Direktori Psikolog Terverifikasi** dengan mekanisme izin berbagi laporan berbatas waktu (*time-bound access*).
 
-## 1. Workflow utama lintas pengguna
+---
 
-```mermaid
-flowchart TD
-    A["Sekolah dan akun dewasa diverifikasi"] --> B["Guru ditugaskan ke siswa; hubungan wali diverifikasi"]
-    B --> C["Wali menerima penjelasan dan menentukan persetujuan"]
-    C --> D{"Izin kegiatan dan prosedur tersedia?"}
-    D -->|Tidak| E["Tunda sesi; selesaikan persyaratan"]
-    D -->|Ya| F["Guru memilih siswa, materi versi disetujui, dan memeriksa perangkat"]
-    F --> G["Aktifkan mode siswa; kunci hak guru di perangkat"]
-    G --> H["Latihan dengan materi berbeda; tidak dinilai"]
-    H --> I["Skrining tanpa koreksi langsung kepada siswa"]
-    I --> J["Simpan respons dan rekaman yang valid; catat bantuan dan kendala"]
-    J --> K["Peninjauan guru; AI opsional hanya sebagai kandidat"]
-    K --> L["Draf laporan observasi dan batas interpretasi"]
-    L --> M["Saran tindak lanjut mengikuti pedoman approved dan ditinjau"]
-    M --> N["Guru berwenang menerbitkan versi laporan"]
-    N --> O["Wali terverifikasi membaca laporan"]
-    O --> P{"Wali ingin tindak lanjut?"}
-    P -->|Tidak| Q["Simpan sesuai retensi; dukungan sekolah sesuai kewenangan"]
-    P -->|Ya| R["Pilih psikolog terverifikasi; izin berbagi versi tertentu bila diperlukan"]
-    R --> S["Ajukan jadwal; psikolog mengakses hanya data yang diizinkan"]
-```
-
-Alur ini tidak menganggap seluruh siswa wajib menyelesaikan semua tugas. Kondisi tidak berizin, belum siap, berhenti, atau data tidak memadai ditangani pada diagram rinci. Sampai instrumen/aturan klasifikasi tersedia, laporan berisi kinerja dan observasi tanpa label risiko.
-
-## 2. Persiapan, latihan, dan skrining
+## 1. Workflow Utama Lintas Pengguna
 
 ```mermaid
 flowchart TD
-    A["Guru login dan memilih siswa"] --> B{"Akun, penugasan, dan sekolah sah?"}
-    B -->|Tidak| X["Tolak akses; jangan ungkap data siswa"]
-    B -->|Ya| C{"Izin kegiatan dan materi/prosedur sesuai?"}
-    C -->|Tidak| Y["Tunda; jelaskan persyaratan yang belum selesai"]
-    C -->|Ya| D["Cek izin rekaman, perangkat, dan mikrofon"]
-    D --> E["Kunci hak guru; berikan kapabilitas satu sesi siswa"]
-    E --> F["Latihan: contoh berbeda dan penjelasan guru; tanpa skor"]
-    F --> G{"Anak memahami cara mengerjakan dan bersedia?"}
-    G -->|Belum memahami| F
-    G -->|Tidak nyaman atau ingin berhenti| STOP["Jeda atau hentikan; catat alasan tanpa memaksa"]
-    G -->|Ya| H["Mulai tugas skrining; tampilkan stimulus stabil"]
-    H --> I{"Tugas memerlukan rekaman?"}
-    I -->|Tidak| J["Simpan respons tugas sesuai prosedur"]
-    I -->|Ya| K{"Izin rekaman aktif dan mikrofon berfungsi?"}
-    K -->|Tidak| U["Tugas terkait tidak dilakukan atau belum dapat dinilai; bukan salah"]
-    K -->|Ya| L["Rekam setelah tindakan pengguna; tanpa koreksi atau petunjuk jawaban"]
-    L --> M{"Ada kendala atau permintaan bantuan?"}
-    M -->|Tidak| N["Selesaikan tugas; hentikan mikrofon dan validasi unggahan"]
-    M -->|Ya| O["Guru menangani sesuai prosedur dan mencatat bantuan/jeda"]
-    O --> P{"Dapat dilanjutkan sesuai prosedur?"}
-    P -->|Ya| L
-    P -->|Tidak| STOP
-    N --> V{"Audio tersimpan dan valid?"}
-    V -->|Ya| J
-    V -->|Tidak| W["Tandai unggahan gagal; retry terikat sesi tanpa overwrite"]
-    W --> T{"Pemulihan diperbolehkan prosedur?"}
-    T -->|Ya| N
-    T -->|Tidak| U
-    U --> NEXT{"Ada tugas lain yang boleh dilanjutkan?"}
-    J --> NEXT
-    NEXT -->|Ya| H
-    NEXT -->|Tidak| END["Tutup kapabilitas siswa; guru autentikasi ulang untuk peninjauan"]
-    STOP --> END
+    A["Sekolah dan akun guru diverifikasi"] --> B["Guru ditugaskan ke siswa; akun orang tua diverifikasi"]
+    B --> C["Orang tua menentukan persetujuan bertingkat (kegiatan, audio, AI)"]
+    C --> D{"Persetujuan aktif dan syarat terpenuhi?"}
+    D -->|Tidak| E["Tunda sesi; lengkapi izin orang tua"]
+    D -->|Ya| F["Guru login di laptop/desktop (1440x900px) dan pilih siswa"]
+    F --> G["Cek mikrofon bersama Piko lalu aktifkan Student Access Lock"]
+    G --> H["Mulai Modul Petualangan Gamifikasi (Dora-style) bersama Piko"]
+    H --> I["Encounter 1-3: Cari buah kelapa, susun huruf, tebak gambar & kata"]
+    I --> J["Encounter 4: Baca teks lisan stabil (Piko disembunyikan total)"]
+    J --> K["Selesai petualangan: Selebrasi Piko gembira & upload audio otomatis"]
+    K --> L["Guru re-autentikasi; kunci Student Mode dilepas"]
+    L --> M["AI Pascarekaman menyusun draf kandidat anotasi (2-15 detik)"]
+    M --> N["Guru meninjau via Teacher Verification Split-View (pangkas beban 80-90%)"]
+    N --> O["Penerbitan Laporan Observasi Versi Immutable"]
+    O --> P["Orang tua menerima notifikasi dan membaca laporan di dashboard"]
+    P --> Q{"Orang tua memerlukan evaluasi klinis?"}
+    Q -->|Tidak| R["Simpan riwayat observasi sesuai kebijakan retensi sekolah"]
+    Q -->|Ya| S["Buka Direktori Psikolog Terverifikasi (Kartu Profil STR/NIP & Klinik)"]
+    S --> T["Orang tua atur izin berbagi laporan berbatas waktu (time-bound access)"]
+    T --> U["Psikolog mengakses laporan sah sebagai bukti autentik penegakan diagnosis"]
 ```
 
-Retry unggahan tidak berarti anak otomatis diminta membaca ulang. Pengulangan tugas hanya mengikuti prosedur instrumen. Penghentian menghasilkan laporan/status parsial bila sesuai, bukan laporan yang menyamar sebagai sesi lengkap.
+---
 
-## 3. Analisis suara pascarekaman dengan model pretrained
+## 2. Alur Petualangan Gamifikasi & Skrining Membaca di Perangkat Guru
 
 ```mermaid
 flowchart TD
-    A["Selesaikan perekaman dengan izin"] --> B["Unggah ke private Storage dengan izin objek terbatas"]
-    B --> READY{"Audio tersimpan, valid, dan hash input tersedia?"}
-    READY -->|Tidak| FAIL["Pulihkan unggahan sesuai prosedur atau tandai belum dapat dinilai"]
-    READY -->|Ya| CHECK{"AI aktif, izin masih sah, penyedia sesuai, dan kuota gratis tersedia?"}
-    CHECK -->|Tidak| MANUAL["Tidak kirim ke AI; tinjauan manual"]
-    CHECK -->|Ya| AI["Analisis model pretrained dengan input minimum dan kunci idempotensi"]
-    AI --> VALID{"Hasil terstruktur valid dan input cocok?"}
-    VALID -->|Tidak| ERR["Gagal atau belum dapat dianalisis; jangan buat skor"]
-    VALID -->|Ya| SAVE["Simpan kandidat final terpisah dari keputusan guru"]
-    SAVE --> REVIEW["Guru meninjau rekaman dan anotasi"]
-    ERR --> REVIEW
-    MANUAL --> REVIEW
-    FAIL --> REVIEW
-    AI --> REVOKE["Jika izin dicabut: hentikan pemrosesan baru dan batalkan pekerjaan tertunda"]
-    REVOKE --> REVIEW
+    A["Guru login di perangkat desktop/laptop kelas (1440x900px)"] --> B{"Autentikasi dan penugasan siswa valid?"}
+    B -->|Tidak| X["Tolak akses; proteksi privasi siswa"]
+    B -->|Ya| C{"Persetujuan kegiatan & rekaman audio aktif?"}
+    C -->|Tidak| Y["Tunda sesi; tampilkan status izin yang kurang"]
+    C -->|Ya| D["Guru periksa kesiapan mikrofon sekolah"]
+    D --> E["Aktifkan Student Mode: terapkan Server-Side Student Access Lock"]
+    E --> F["Layar Sambutan Petualangan: Maskot Piko menyapa (piko-wave.svg)"]
+    F --> G["Cek Suara Siswa: Piko mengenakan headphone (piko-listen.svg)"]
+    G --> H["Latihan Misi Petualangan: Piko memandu contoh tugas (piko-guide.svg)"]
+    H --> I{"Siswa siap menjelajah bersama Piko?"}
+    I -->|Perlu penjelasan lagi| H
+    I -->|Anak gelisah / tidak bersedia| STOP["Pilih jeda atau batalkan sesi; Piko istirahat (piko-rest.svg)"]
+    I -->|Siap| J["Mulai Peta Perjalanan Petualangan Hutan"]
+
+    subgraph AdventureEncounters["Babak Petualangan Interaktif Gamifikasi"]
+        J --> POS1["Pos 1: Pohon Kelapa Ajaib (Cari buah kelapa & susun huruf jadi kata)"]
+        POS1 --> POS2["Pos 2: Jejak Hutan (Tebak gambar objek & eja kata)"]
+        POS2 --> POS3["Pos 3: Gerbang Sandi Batu (Membaca kata nyata & pseudoword)"]
+        POS3 --> TRANSITION["Transisi ke Kartu Stimulus Membaca Teks Tenang"]
+    end
+
+    subgraph ActiveReadingScreening["Fase Pembacaan Teks Lisan Aktif (Pos 4)"]
+        TRANSITION --> K["Tampilkan Kartu Stimulus Stabil (Nunito Sans 26-28px di latar #FAF8F4)"]
+        K --> L["PIKO WAJIB DISEMBUNYIKAN TOTAL (display: none, tanpa maskot di layar)"]
+        L --> M["Mulai Perekaman Audio Klien (MediaRecorder)"]
+        M --> N{"Ada tombol Jeda atau Panggil Guru ditekan?"}
+        N -->|Ya| PAUSE["Perekaman ditunda; Piko panggil guru (piko-call-teacher.svg)"]
+        PAUSE --> RESUME{"Guru selesaikan kendala dan lanjutkan?"}
+        RESUME -->|Ya| K
+        RESUME -->|Tidak| STOP
+        N -->|Tidak| O["Siswa selesai membaca teks lisan"]
+        O --> P["Hentikan mikrofon; simpan berkas audio lokal"]
+    end
+
+    P --> POS5["Pos 5: Sahabat Hutan (Tanya jawab pemahaman cerita bacaan)"]
+    POS5 --> R["Misi Petualangan Tuntas: Piko bersorak apresiasi (piko-cheer.svg)"]
+    R --> S["Unggah audio ke Supabase Private Storage dengan Signed Upload URL"]
+    S --> T{"Unggahan audio terverifikasi ready dan hash cocok?"}
+    T -->|Gagal| U["Tandai unggahan gagal; sediakan retry terikat sesi tanpa overwrite"]
+    T -->|Berhasil| V["Tutup Student Mode; Guru masukkan PIN/Kredensial untuk buka kunci"]
+    STOP --> V
+    U --> V
 ```
 
-Cabang pencabutan adalah interupsi, bukan langkah yang harus selalu terjadi. Periksa izin lagi sebelum dispatch/retry; respons yang telanjur diproses ditangani sesuai kebijakan. Kandidat final AI bukan penilaian final guru. Analisis lama atau terlambat tidak boleh mengubah revisi tinjauan yang telah final. Pseudoword pada tahap awal tetap manual. Real-time dan training/fine-tuning di luar MVP.
+---
 
-## 4. Peninjauan, laporan, dan saran tindak lanjut
+## 3. Pemrosesan AI Pascarekaman & Verifikasi Guru
 
 ```mermaid
 flowchart TD
-    A["Guru berwenang membuka antrean peninjauan"] --> B["Periksa respons, audio, versi materi, serta catatan bantuan"]
-    B --> C{"Bukti memadai untuk tugas terkait?"}
-    C -->|Tidak| D["Tandai belum dapat dinilai dan jelaskan keterbatasan"]
-    C -->|Ya| E["Konfirmasi/perbaiki kandidat AI atau anotasi manual; gunakan rubrik disetujui"]
-    D --> F["Finalisasi revisi tinjauan; jangan ganti data hilang menjadi nol"]
-    E --> F
-    F --> G["Buat draf versi laporan yang mengikat revisi tinjauan tertentu"]
-    G --> H{"Pedoman tindak lanjut approved tersedia?"}
-    H -->|Tidak| I["Sajikan temuan dan batas interpretasi; tidak membuat rujukan otomatis"]
-    H -->|Ya| J["Aturan pedoman menentukan tindak lanjut yang sesuai"]
-    J --> L["Gunakan narasi pedoman atau susun manual; tanpa AI generatif"]
-    L --> N["Pihak berwenang memeriksa saran sebelum publikasi"]
-    N --> O{"Isi dan kelengkapan layak diterbitkan?"}
-    I --> O
-    O -->|Tidak| G
-    O -->|Ya| P["Terbitkan versi immutable; notifikasi tanpa isi sensitif"]
-    P --> Q["Wali terverifikasi login untuk membaca"]
-    P --> R["Perbaikan berikutnya menghasilkan versi baru; bukan overwrite"]
+    A["Audio selesai diunggah dan tervalidasi di Supabase Private Storage"] --> B{"Persetujuan komputasi AI aktif dan kuota gratis tersedia?"}
+    B -->|Tidak| MANUAL["Lewati AI; arahkan langsung ke antarmuka tinjauan manual murni"]
+    B -->|Ya| QUEUE["Kirim trigger aman ke antrean worker analisis pascarekaman"]
+    
+    subgraph PostRecordingAI["Pemrosesan AI Pascarekaman (Latensi 2-15 Detik)"]
+        QUEUE --> C["Jalankan model pretrained speech recognition / phonetic alignment"]
+        C --> D["Ekstraksi teks ucapan dan perbandingan terhadap teks stimulus acuan"]
+        D --> E["Hasilkan kandidat anotasi: substitusi, pengulangan, keraguan, lewatan"]
+        E --> F["Hitung keselarasan waktu audio terhadap teks (audio-text alignment timestamps)"]
+        F --> G["Simpan hasil sebagai AI_ANALYSIS dan draf AI_ANNOTATION"]
+    end
+
+    G --> H["Guru membuka antarmuka Teacher Verification Split-View (1440x900px)"]
+    MANUAL --> H
+    
+    subgraph SplitViewVerification["Teacher Verification Split-View"]
+        H --> I["Panel Kiri: Audio player interaktif dengan visualisasi Waveform"]
+        H --> J["Panel Kanan: Teks acuan dengan sorotan kandidat anotasi AI"]
+        I <-->|Sinkronisasi klik kata ke posisi waktu audio| J
+        J --> K["Guru konfirmasi/koreksi kandidat draf AI (pangkas 80-90% usaha manual)"]
+        K --> L["Guru tambahkan catatan pendampingan atau interupsi jika ada"]
+        L --> M["Finalisasi dan simpan peninjauan ke REVIEW_REVISION"]
+    end
 ```
 
-Laporan parsial harus jelas status dan batasnya. Tidak ada persentase atau kategori risiko tanpa instrumen serta aturan yang mendukung. AI tidak memilih ambang maupun menentukan diagnosis.
+---
 
-## 5. Pembagian laporan dan permintaan konsultasi
+## 4. Peninjauan, Penyusunan Laporan, dan Saran Tindak Lanjut
 
 ```mermaid
 flowchart TD
-    A["Wali terverifikasi memilih psikolog terverifikasi"] --> B{"Ingin membagikan laporan?"}
-    B -->|Tidak| C["Ajukan jadwal tanpa membuka laporan"]
-    B -->|Ya| D["Pilih anak, versi laporan terbit, penerima, dan cakupan; audio tidak default"]
-    D --> E["Tampilkan penjelasan berbagi dan catat persetujuan eksplisit"]
-    E --> F["Buat izin untuk kombinasi tersebut; ajukan jadwal bila diinginkan"]
-    C --> G["Psikolog menanggapi permintaan jadwal"]
-    F --> G
-    F --> H["Psikolog meminta akses laporan"]
-    H --> I{"Penerima, hubungan wali, versi, cakupan, dan izin masih sah?"}
-    I -->|Tidak| DENY["Tolak akses"]
-    I -->|Ya| J["Tampilkan hanya data berizin dan catat audit"]
-    J --> K["Konsultasi sesuai layanan; tidak otomatis terlihat oleh guru"]
-    F --> L{"Ada perubahan izin/laporan?"}
-    L -->|Izin dicabut atau kedaluwarsa| M["Blokir akses baru dan hentikan koneksi terkait"]
-    L -->|Versi laporan baru| N["Versi baru tidak ikut dibagikan; minta izin baru"]
+    A["Guru mengakses hasil tinjauan final (REVIEW_REVISION)"] --> B["Sistem menyusun draf laporan observasi performa membaca"]
+    B --> C["Sajikan metrik objektif: akurasi fonetik, kecepatan baca, jenis kesalahan"]
+    C --> D{"Pedoman tindak lanjut resmi disetujui (GUIDANCE_VERSION) tersedia?"}
+    D -->|Tidak| E["Sajikan narasi observasi deskriptif tanpa klasifikasi risiko otomatis"]
+    D -->|Ya| F["Terapkan aturan deterministik pedoman (rule-based engine, bukan Generative AI)"]
+    F --> G["Hasilkan saran tindak lanjut pedagogis sekolah yang terstandar"]
+    E --> H["Guru memeriksa kelengkapan draf laporan observasi"]
+    G --> H
+    H --> I{"Draf laporan disetujui untuk diterbitkan?"}
+    I -->|Perlu perbaikan| B
+    I -->|Ya| J["Guru menandatangani & menerbitkan REPORT_VERSION (Immutable)"]
+    J --> K["Sistem kirim notifikasi aman ke dashboard orang tua (tanpa data sensitif)"]
+    J --> L["Laporan terkunci dan memiliki nomor versi serta stempel waktu penerbitan"]
 ```
 
-Pencabutan tidak menghapus salinan yang sudah diunduh dan belum tentu mematikan signed URL yang telah diterbitkan sebelum kedaluwarsa. Sampaikan batas ini; gunakan akses berotorisasi tiap permintaan bila pencabutan seketika diperlukan. Penjadwalan bukan izin mengakses seluruh data.
+---
 
-## 6. Penarikan persetujuan dan penghapusan
+## 5. Direktori Psikolog Terverifikasi & Izin Berbagi Berbatas Waktu
 
 ```mermaid
 flowchart TD
-    A["Wali terverifikasi mengajukan tindakan"] --> B{"Jenis tindakan?"}
-    B -->|Hentikan sesi| C["Jeda/akhiri tugas; hentikan mikrofon dan tutup kapabilitas siswa"]
-    B -->|Tarik persetujuan| D["Catat pencabutan untuk tujuan dan cakupan terkait"]
-    D --> E["Hentikan pemrosesan baru, retry, dan pekerjaan tertunda terkait"]
-    E --> F["Tangani data yang telanjur dikirim sesuai kebijakan/penyedia; jelaskan batasnya"]
-    B -->|Minta penghapusan| G["Verifikasi kewenangan dan cakupan permintaan"]
-    G --> H["Periksa kewajiban retensi dan tentukan pelaksanaan oleh penanggung jawab"]
-    H --> I["Hapus/pseudonimkan sesuai keputusan pada database, audio, turunan, dan penyedia"]
-    I --> J["Catat hasil serta batas backup dan salinan eksternal; informasikan kepada wali"]
-    C --> K["Audit minimum tanpa isi sensitif"]
-    F --> K
-    J --> K
+    A["Orang tua login dan membuka laporan hasil observasi sekolah"] --> B["Orang tua membaca temuan observasi dan batas interpretasi (bukan diagnosis)"]
+    B --> C{"Orang tua memutuskan konsultasi ke tenaga profesional?"}
+    C -->|Tidak| D["Laporan tersimpan aman di akun orang tua sebagai arsip perkembangan anak"]
+    C -->|Ya| E["Orang tua membuka menu 'Direktori Psikolog Terverifikasi'"]
+    
+    subgraph DirectoryComponent["Komponen Direktori Psikolog Terverifikasi"]
+        E --> F["Tampilkan Kartu Profil: Foto Avatar, Nama Lengkap & Gelar"]
+        F --> G["Tampilkan Nomor Registrasi Kredensial Resmi (STR / NIP Terverifikasi)"]
+        G --> H["Tampilkan Nama Fasilitas: Klinik Psikologi / Rumah Sakit Rekanan"]
+        H --> I["Klik tombol 'Pilih Konsultasi & Bagikan Laporan'"]
+    end
+
+    I --> J["Buka Modal Pengaturan Izin Berbagi (REPORT_SHARE)"]
+    J --> K["Tentukan Cakupan: Versi laporan tertentu (rekaman audio dikecualikan secara default)"]
+    K --> L["Tentukan Batas Waktu Akses (Tanggal Kedaluwarsa / Time-Bound Access)"]
+    L --> M["Orang tua konfirmasi persetujuan; simpan baris REPORT_SHARE aktif"]
+    M --> N["Buat permohonan konsultasi (CONSULTATION_REQUEST)"]
+    N --> O["Psikolog menerima permohonan dan memeriksa jadwal"]
+    O --> P["Psikolog mengakses laporan observasi sekolah dalam rentang waktu berizin"]
+    P --> Q["Psikolog gunakan data otentik sekolah untuk mendukung asesmen diagnosis klinis resmi"]
+    
+    subgraph ExpirationRevocation["Pencabutan & Kedaluwarsa Akses"]
+        M --> R{"Batas waktu kedaluwarsa tercapai atau orang tua klik Cabut Izin?"}
+        R -->|Ya| S["Akses laporan langsung terblokir server; kunci akses tertutup"]
+    end
 ```
 
-Detail masa simpan, pengecualian retensi, tenggat, dan proses backup harus ditetapkan sebelum data anak dipakai. Diagram ini tidak menjanjikan penghapusan instan dari seluruh pihak.
+---
 
-## 7. Pemetaan alur ke ERD
+## 6. Penarikan Persetujuan dan Penghentian Pemrosesan
 
-| Tahap | Entitas utama |
-|---|---|
-| Verifikasi dan penugasan | PROFILE, SCHOOL_MEMBER, CHILD, TEACHER_ASSIGNMENT, GUARDIAN_LINK, PSYCHOLOGIST_PROFILE |
-| Persetujuan | CONSENT_EVENT dan GUARDIAN_LINK |
-| Persiapan/latihan/skrining | MATERIAL_VERSION, ASSESSMENT_SESSION, STUDENT_ACCESS, TASK_ATTEMPT, SESSION_EVENT |
-| Rekaman dan AI | RECORDING, AI_ANALYSIS, AI_ANNOTATION |
-| Peninjauan | REVIEW_REVISION, REVIEW_ANNOTATION |
-| Laporan dan saran | REPORT_VERSION, REPORT_REVIEW, GUIDANCE_VERSION |
-| Berbagi dan penjadwalan | REPORT_SHARE, CONSULTATION_REQUEST |
-| Jejak tindakan | AUDIT_EVENT |
+```mermaid
+flowchart TD
+    A["Orang tua mengajukan tindakan hak privasi di dashboard"] --> B{"Pilihan tindakan orang tua?"}
+    B -->|Jeda / Batalkan Sesi Berjalan| C["Instruksi stop dikirim; mikrofon mati seketika; Student Mode ditutup"]
+    B -->|Cabut Persetujuan AI| D["Catat penarikan izin AI di CONSENT_EVENT; batalkan antrean pemrosesan AI"]
+    D --> E["Sistem pertahankan rekaman untuk peninjauan guru manual 100%"]
+    B -->|Cabut Izin Rekaman Audio| F["Hentikan perekaman; sesi hanya mencakup tugas non-audio"]
+    B -->|Cabut Izin Berbagi Laporan| G["Ubah status REPORT_SHARE menjadi revoked; blokir akses psikolog seketika"]
+    B -->|Permohonan Penghapusan Data| H["Verifikasi identitas dan periksa kewajiban retensi arsip sekolah"]
+    H --> I["Penghapusan / pseudonimisasi berkas audio dan data turunan di Supabase"]
+    I --> J["Catat bukti eksekusi ke AUDIT_EVENT secara append-only"]
+```
 
-## 8. Pemeriksaan sebelum implementasi
+---
 
-- [ ] Jalur manual berfungsi tanpa AI dan tanpa real-time.
-- [ ] Latihan tidak memengaruhi skor; skrining tidak mengirim koreksi ke siswa.
-- [ ] Perangkat guru dan kapabilitas siswa tidak berbagi hak akses.
-- [ ] Izin diperiksa kembali sebelum pengiriman/retry; kuota gratis diperiksa sebelum proses AI.
-- [ ] Rekaman rusak/gagal dan tugas dilewati tidak menjadi nilai nol.
-- [ ] Revisi tinjauan dan versi laporan tidak tertimpa hasil terlambat.
-- [ ] Pembagian mengikat penerima dan versi tertentu; konsultasi tetap terpisah.
-- [ ] Penyedia AI, instrumen, aturan beberapa wali, retensi, dan penanggung jawab sudah diselesaikan sebelum penggunaan nyata.
-- [ ] Tidak ada real-time, training/fine-tuning, atau saran AI generatif dalam scope MVP.
-- [ ] Seluruh alur diuji desktop, tablet, dan handphone; konteks penyajian asesmen dicatat.
-- [ ] Tema hutan hanya modul gamifikasi; React dan Tailwind menjadi dasar antarmuka responsif.
-- [ ] Tidak ada billing/upgrade tanpa persetujuan; kuota habis tidak menghapus data valid.
+## 7. Pemetaan Alur ke Entitas Database (ERD)
 
-Tidak ada hasil uji pengguna, akurasi AI, atau validitas skrining yang diklaim oleh diagram ini.
+| Tahap Workflow | Entitas Database Terkait | Deskripsi Pemrosesan |
+|---|---|---|
+| **Verifikasi & Penugasan** | `PROFILE`, `SCHOOL_MEMBER`, `CHILD`, `TEACHER_ASSIGNMENT`, `GUARDIAN_LINK` | Memastikan guru dan siswa berada di sekolah yang sama dengan penugasan sah. |
+| **Persetujuan Granular** | `CONSENT_EVENT` | Mencatat izin orang tua untuk kegiatan, perekaman audio, dan analisis AI secara append-only. |
+| **Persiapan & Student Mode** | `ASSESSMENT_SESSION`, `STUDENT_ACCESS`, `MATERIAL_VERSION` | Mengunci akses guru di desktop (1440×900px) dan memuat paket petualangan gamifikasi. |
+| **Tugas Gamifikasi Petualangan** | `TASK_ATTEMPT`, `SESSION_EVENT` | Mencatat respons babak petualangan (susun huruf, eja gambar, kata nyata/semu). |
+| **Skrining Membaca Lisan** | `TASK_ATTEMPT`, `RECORDING` | Menyajikan kartu stimulus tenang, menyembunyikan Piko, merekam audio, dan unggah ke storage. |
+| **Analisis AI Pascarekaman** | `AI_ANALYSIS`, `AI_ANNOTATION` | Memproses audio pascarekaman (2–15 detik) untuk menghasilkan draf anotasi tanpa streaming real-time. |
+| **Peninjauan Split-View** | `REVIEW_REVISION`, `REVIEW_ANNOTATION` | Guru memvalidasi usulan draf AI melalui tampilan visual waveform, memangkas beban 80–90%. |
+| **Penerbitan Laporan** | `REPORT_VERSION`, `REPORT_REVIEW`, `GUIDANCE_VERSION` | Mengunci hasil observasi sekolah menjadi laporan resmi versi immutable dengan saran berbasis aturan. |
+| **Direktori & Berbagi Data** | `PSYCHOLOGIST_PROFILE`, `REPORT_SHARE`, `CONSULTATION_REQUEST` | Menampilkan profil psikolog (STR/NIP, klinik) dan memberikan izin akses laporan berbatas waktu. |
+| **Jejak Audit & Keamanan** | `AUDIT_EVENT` | Merekam setiap akses data sensitif, perubahan izin, dan penerbitan laporan tanpa data rahasia. |
+
+---
+
+## 8. Checklist Validasi Workflow Sebelum Implementasi
+
+- [ ] **Modul Petualangan Terintegrasi:** Alur petualangan ramah anak (menemukan kelapa/huruf, tebak gambar, membaca kata/teks) berjalan runtut dan menyenangkan.
+- [ ] **Model Perangkat Tunggal:** Alur asesmen berjalan mulus pada satu laptop/desktop guru (1440×900px) tanpa membutuhkan akun atau perangkat khusus siswa.
+- [ ] **Kunci Akses Siswa:** Saat mode siswa aktif, semua navigasi guru, pengaturan akun, dan akses ke data siswa lain terblokir di tingkat server.
+- [ ] **Visibilitas Piko Teruji:** Piko tampil ramah saat sambutan, cek suara, latihan, jeda, dan penutupan, tetapi **tersembunyi 100% tanpa visualisasi apa pun** saat pembacaan teks aktif.
+- [ ] **Pemrosesan Pascarekaman Murni:** AI hanya aktif setelah berkas audio selesai direkam dan tersimpan valid (latensi 2–15 detik); tidak ada dependensi WebSocket streaming audio real-time.
+- [ ] **Teacher Verification Split-View:** Antarmuka peninjauan menyinkronkan pemutar audio dan waveform dengan teks stimulus secara interaktif, memangkas usaha peninjauan guru hingga 80–90%.
+- [ ] **Direktori Psikolog Terstandar:** Menampilkan kartu profil psikolog dengan data kredensial lengkap (Avatar, Nama Lengkap, STR/NIP, Fasilitas Klinik).
+- [ ] **Berbagi Berbatas Waktu (Time-Bound):** Akses psikolog ke laporan observasi dibatasi oleh tanggal kedaluwarsa dan nomor versi laporan tertentu; audio tidak dibagikan secara default.
+- [ ] **Kemandirian Jalur Manual:** Bila AI dimatikan atau kuota habis, seluruh alur asesmen dan peninjauan tetap dapat diselesaikan guru secara manual.
