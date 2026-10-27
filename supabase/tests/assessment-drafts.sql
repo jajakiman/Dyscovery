@@ -53,8 +53,27 @@ do $$ declare first_id uuid; begin
     raise exception 'Direct session write allowed';
   exception when insufficient_privilege then null; end;
 end $$;
+reset role;
+insert into public.practice_responses(session_id,item_key,response,request_id)
+select id,'practice-1','Respons sintetis',gen_random_uuid() from public.assessment_sessions
+where material_version_id='70000000-0000-4000-8000-000000000002';
+set local role authenticated;
+do $$ begin
+  assert (select count(*) from public.practice_responses)=1, 'Assigned teacher cannot read response';
+end $$;
+select public.set_teacher_pin('012345');
+reset role;
+update public.teacher_device_modes set locked_at=clock_timestamp(),expires_at=clock_timestamp()+interval '1 hour'
+where teacher_id='70000000-0000-4000-8000-000000000010';
+set local role authenticated;
+do $$ begin
+  assert (select count(*) from public.practice_responses)=0, 'Locked teacher can read response';
+  assert (public.unlock_teacher_mode('012345')->>'ok')::boolean, 'Unlock failed';
+  assert (select count(*) from public.practice_responses)=1, 'Response not restored after unlock';
+end $$;
 select set_config('request.jwt.claim.sub','70000000-0000-4000-8000-000000000012',true);
 do $$ begin
+  assert (select count(*) from public.practice_responses)=0, 'Unassigned teacher response leak';
   assert (select count(*) from public.assessment_sessions)=0, 'Unassigned teacher leak';
   begin
     perform public.create_assessment_draft('70000000-0000-4000-8000-000000000001','70000000-0000-4000-8000-000000000002');
@@ -66,6 +85,7 @@ select public.record_guardian_consent('70000000-0000-4000-8000-000000000023','ac
 select set_config('request.jwt.claim.sub','70000000-0000-4000-8000-000000000010',true);
 do $$ begin
   assert (select count(*) from public.assessment_sessions)=0, 'Withdrawn session visible';
+  assert (select count(*) from public.practice_responses)=0, 'Withdrawn response visible';
   begin
     perform public.create_assessment_draft('70000000-0000-4000-8000-000000000001','70000000-0000-4000-8000-000000000002');
     raise exception 'Withdrawal bypassed on retry';

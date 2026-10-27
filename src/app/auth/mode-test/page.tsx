@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { Practice } from "./practice";
+import { TeacherPractice } from "./teacher-practice";
 
 type Mode = "checking" | "anonymous" | "teacher" | "student" | "locked" | "error";
 
@@ -108,6 +109,7 @@ export default function ModeTestPage() {
         </form>
       </>}
       {mode === "teacher" && <>
+        <TeacherPractice key={session} sessionId={session} />
         <form onSubmit={(event) => submit(event, "/api/teacher-mode/pin", ["pin"])}>
           <h2>Buat PIN sekali</h2>{pinField}<button type="submit">Simpan PIN guru</button>
           <p>Lewati jika sudah punya PIN. Tidak ada penggantian atau reset PIN publik.</p>

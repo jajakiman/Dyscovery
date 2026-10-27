@@ -1,6 +1,15 @@
 # Dyscovery: Implementation Progress
 
-## Latihan teks sintetis (migrasi 008 belum diterapkan)
+## Pembacaan respons sintetis oleh guru (28 Oktober 2026)
+
+- GET `/api/assessment-sessions/[id]/practice` membaca `id`, `status`, dan `practice_responses(item_key,response,created_at)` dalam satu query menggunakan client pengguna dan RLS, tanpa service-role. ID invalid 400, belum login 401, sesi tidak ada/tidak diizinkan 404 (tidak membocorkan keberadaan), gangguan database 503; seluruh respons private/no-store.
+- Tidak perlu migrasi baru. Policy sesi migrasi 007 dan policy respons migrasi 008 tetap memeriksa penugasan, consent kegiatan dan lock guru. Endpoint hanya membaca; tidak memberi skor, mengubah respons, atau memfinalisasi sesi.
+- Tes endpoint gagal terlebih dahulu karena endpoint belum tersedia, lalu lulus: validasi ID, login, hasil kosong, sukses, no-store, dan error tersanitasi. Boundary Supabase/Next di-stub; ini bukan bukti RLS database. `supabase/tests/assessment-drafts.sql` ditambah assert respons guru sah, lock/unlock, guru tanpa penugasan, dan consent dicabut; SQL belum dijalankan agen/operator untuk perubahan tes ini.
+- UI low-fi sesuai arahan pemilik: bagian Baca respons latihan pada `/auth/mode-test`, hanya dirender dalam mode guru. Input ID draf (otomatis jika status menyediakannya), tombol baca, daftar butir/respons/waktu, status loading/kosong/error. Hasil dihapus sebelum fetch baru atau saat ID diedit; komponen unmount saat pemeriksaan mode/mode siswa. Tidak menyimpan hasil ke localStorage. Ini bukan jaminan isolasi cache/tab menyeluruh.
+- Lint/typecheck/build exit 0; seluruh 7 file tes Node lulus. Tes render awal UI gagal sebelum komponen ada lalu lulus; belum menguji interaksi browser. Warning Node experimental/module detection lama masih ada. Belum commit/push, belum diuji HTTP deployment. Tidak ada redesign, audio, AI, skor atau perubahan skema.
+- Koreksi catatan historis di bawah: migrasi/test/seed 008 sudah dilaporkan berhasil oleh pemilik, implementasi sudah dipush melalui a31e2c9. Pemilik juga melaporkan flow simpan respons/refresh/muat ulang sesuai. Pemeriksaan 403 dan unlock pernah lulus pada pengujian mode sebelumnya; pengulangan keduanya setelah latihan terbaru belum dikonfirmasi secara terpisah.
+
+## Latihan teks sintetis (catatan historis sebelum migrasi/deployment)
 
 - Pemilik melaporkan uji manual mode guru/siswa lulus: penolakan daftar siswa 403, refresh/tab tetap terkunci, PIN salah ditolak dan PIN benar kembali ke draf sama. Bukan bukti pembersihan cache/history atau kesiapan anak nyata.
 - Migrasi 008 menambah practice_responses privat dan RPC student_practice/save_student_practice. Hanya materi synthetic=true, protocol text-practice-v1 dengan satu item fase practice; bukan instrumen atau sesi skrining. Status assessment_sessions tetap draft. Tidak ada skor, koreksi jawaban, audio, AI, atau klaim diagnosis.
