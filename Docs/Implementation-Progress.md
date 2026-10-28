@@ -8,23 +8,100 @@ Target pemilik: penyelesaian hari ini, sebelum deadline 30 Oktober. Core MVP PRD
 |---|---|---|
 | PRD §2; Security Rules §2 | Migrasi 001–003, API auth/profil/children | Auth dan assignment tersedia; Google/manual diuji pemilik. Provisioning operator belum menjadi workflow teraudit lengkap. |
 | PRD §8; Security Rules §4; ERD §2 | Migrasi 004, guardian_links/consent_notices/consent_events | Consent berversi dan seluruh wali terkait tersedia; prosedur verifikasi wali nyata belum tuntas. |
-| PRD §7; ERD §3 | Migrasi 005, materials/assessment-sessions API | Materi immutable dan draf idempoten; belum lifecycle sesi penuh. |
+| PRD §7; ERD §3 | Migrasi 005 & 009, materials/assessment-sessions API, task_attempts, session_events | Lifecycle draft->in_progress->completed/cancelled, task_attempts idempoten, session_events append-only; diuji secara lokal (10 file tes Node & rollback SQL test). |
 | PRD §2.2; Workflow §2; Security Rules §3 | Migrasi 006–007, teacher_device_modes | Lock akun dan PIN khusus sintetis; bukan implementasi STUDENT_ACCESS independen, MFA, atau isolasi cache/history menyeluruh. |
 | PRD §5.2 | Migrasi 008, student/practice API | Satu latihan teks sintetis tanpa skor; bukan lima pos petualangan atau instrumen skrining. |
-| Workflow §3–4; ERD §3 | Commit 37857d5, assessment-sessions/[id]/practice | Guru membaca respons setelah unlock, diuji pemilik; belum anotasi, rubrik, finalisasi review atau laporan. |
-| PRD §11; Workflow §2–3 | Belum ada modul end-to-end | Audio, upload privat, AI, alignment dan waveform belum diimplementasikan. |
-| PRD §11; ERD §4; Workflow §4–5 | Belum ada migrasi/API | Laporan, direktori psikolog, sharing kedaluwarsa dan konsultasi belum diimplementasikan. |
+| Workflow §3–4; ERD §3 & §4 | Migrasi 011, review_revisions, review_annotations, report_versions, report_reviews, reviews & reports API | Peninjauan berversi immutable saat finalized, laporan observasi snapshot immutable saat published, tidak mengarang skor diagnosis; diuji lokal (14 file tes Node & rollback SQL test). |
+| PRD §11; Workflow §2–3 | Migrasi 010, recordings, student audio upload/finalize API & playback | Audio privat terikat izin perwalian 'recording', storage key anonym, signed upload/download URL, retry tanpa overwrite; diuji secara lokal (12 file tes Node & rollback SQL test). |
+| PRD §11; ERD §4; Workflow §4–5 | Belum ada migrasi/API | Direktori psikolog, sharing kedaluwarsa dan konsultasi belum diimplementasikan. |
 | Security Rules §11 | Tes Node, SQL rollback, uji manual sebagian | Runner remote belum berhasil dimulai karena PATH psql; bukan bukti semua RLS lulus atau siap data nyata. |
 
 ### Urutan kerja dan gerbang penerimaan
 
-- [ ] Tuntaskan runner SQL dan tujuh tes rollback pada project sintetis; stop pada error pertama. Tidak menjalankan seed/migrasi otomatis.
-- [ ] Lifecycle dan task_attempts/session_events, validasi jenis respons serta idempotensi. Materi tetap sintetis sampai instrumen/protokol ahli tersedia.
-- [ ] Audio privat: metadata, izin upload terikat task/consent, validasi finalisasi, retry tanpa overwrite dan playback terotorisasi.
-- [ ] Review manual berversi dan laporan immutable; tidak mengarang rubrik, skor atau pedoman. Respons teks saat ini bukan review formal.
+- [ ] Tuntaskan runner SQL dan sepuluh tes rollback pada project sintetis; stop pada error pertama. Tidak menjalankan seed/migrasi otomatis.
+- [x] Lifecycle dan task_attempts/session_events, validasi jenis respons serta idempotensi. Materi tetap sintetis sampai instrumen/protokol ahli tersedia.
+- [x] Audio privat: metadata, izin upload terikat task/consent, validasi finalisasi, retry tanpa overwrite dan playback terotorisasi.
+- [x] Review manual berversi dan laporan immutable; tidak mengarang rubrik, skor atau pedoman. Respons teks saat ini bukan review formal.
 - [ ] AI pascarekaman hanya setelah provider gate dan consent terpenuhi; hasil kandidat, jalur manual tetap bekerja. Latensi 2–15 detik/penghematan 80–90% belum terbukti.
 - [ ] Direktori psikolog terverifikasi dan sharing versi laporan dengan expires_at wajib, audio default tidak disertakan; uji pencabutan/akses lintas akun.
 - [ ] Integrasi FE, regresi deployment, update bukti pengujian, lalu commit/push dengan persetujuan pemilik. Tidak mencentang acceptance PRD berdasarkan dokumentasi saja.
+
+## Peninjauan guru manual berversi dan laporan observasi sekolah immutable (29 Oktober 2026)
+
+- Migrasi `202610230011_reviews_and_reports.sql`:
+  - Tabel `review_revisions`: riwayat peninjauan berversi (`revision` integer naik), status `draft` atau `finalized`. Trigger proteksi `protect_finalized_review` mengunci revisi secara *immutable* begitu difinalisasi.
+  - Tabel `review_annotations`: anotasi bukti bacaan lisan (`match`, `substitution`, `omission`, `repetition`, `hesitation`, `unclear`, `general_observation`), catatan teks, lokasi bukti (*evidence location*), dan tautan rekaman audio. Trigger `protect_finalized_review_annotations` menolak penambahan/pengubahan anotasi pada revisi yang telah difinalisasi.
+  - Tabel `report_versions`: penerbitan laporan observasi sekolah resmi berversi (`session_id, version`). Menyimpan data permanen `findings_snapshot` (observasi objektif performa tugas tanpa vonis diagnosis otomatis disleksia), asal saran tindak lanjut (`expert_rule` atau `teacher_manual` — bukan Generative AI), dan identitas penerbit (`published_by`). Trigger `protect_published_report` menjamin laporan *immutable* begitu terbit; perbaikan harus menerbitkan versi baru (`version + 1`).
+  - Tabel `report_reviews`: relasi pembekuan (*freeze junction*) antara versi laporan dengan versi peninjauan guru yang mendukungnya.
+  - RPC aman: `save_review_draft`, `finalize_review_revision`, dan `publish_observation_report`.
+- Endpoint API baru:
+  - `POST /api/assessment-sessions/[id]/reviews`: simpan draft peninjauan guru dan anotasi bacaan.
+  - `GET /api/assessment-sessions/[id]/reviews`: pembacaan riwayat revisi peninjauan bagi guru dan wali.
+  - `POST /api/assessment-sessions/[id]/reviews/finalize`: penguncian status peninjauan menjadi `finalized`.
+  - `POST /api/assessment-sessions/[id]/reports`: penerbitan laporan observasi sekolah (memeriksa sesi berstatus `completed`).
+  - `GET /api/assessment-sessions/[id]/reports`: pembacaan versi laporan observasi resmi bagi guru terotorisasi dan orang tua.
+- Validasi input: `src/lib/assessment/review-report.ts`.
+- Pengujian otomatis:
+  - `tests/review-report-input.test.mjs`: pengujian struktur input rubrik, temuan anotasi, dan sanitasi saran tindak lanjut (menolak origin non-ahli/AI generatif).
+  - `tests/review-report-endpoints.test.mjs`: pengujian route POST/GET, validasi Origin staging, otentikasi 401, penolakan penerbitan pada sesi yang belum selesai (400), dan header `Cache-Control: private, no-store`.
+  - `supabase/tests/reviews-and-reports.sql`: skrip rollback untuk pengujian imutabilitas revisi dan laporan, larangan penulisan langsung dari client, dan hak baca wali vs isolasi guru tak bertugas.
+  - Ditambahkan ke runner `scripts/test-db.mjs` (total 10 skrip tes rollback).
+- Hasil verifikasi aktual:
+  - `npm run typecheck`: exit 0 (0 error).
+  - `npm run lint`: exit 0 (0 warning).
+  - `npm run build`: exit 0 (semua 16 rute terkompilasi sukses).
+  - `node --experimental-strip-types --test tests/*.test.mjs`: **14/14 file tes lulus**.
+
+## Modul audio privat, otorisasi upload, dan pemutaran terotentikasi (29 Oktober 2026)
+
+- Migrasi `202610230010_private_audio.sql`:
+  - Tabel `recordings`: terikat `task_attempt_id` dan `session_id`, status `pending_upload` / `ready` / `failed`, metadata durasi, ukuran byte (maksimal 25MB), content hash, dan tipe MIME (`audio/webm`, `audio/ogg`, `audio/wav`, `audio/mp4`).
+  - Kunci penyimpanan server-side anonim: format `recordings/{sessionId}/{recordingId}.{ext}` (bebas nama/data pribadi siswa).
+  - Indeks unik parsial: hanya satu rekaman berstatus `ready` per attempt; percobaan ulang/retry tidak menimpa riwayat secara diam-diam.
+  - RPC aman:
+    - `request_audio_upload`: memvalidasi sesi aktif, mode siswa atau guru berwenang, dan **memeriksa persetujuan eksplisit perwalian untuk tujuan `'recording'`**.
+    - `finalize_audio_upload`: memvalidasi integritas hash, batas ukuran (maksimal 25MB), dan rentang durasi (100ms - 30 menit).
+    - `get_recording_playback_info`: memvalidasi hak guru yang telah keluar dari mode siswa (*unlocked*) atau wali sah, serta memastikan persetujuan perekaman belum dicabut.
+  - RLS `recordings`: hanya mengizinkan pembacaan oleh pihak berwenang dengan persetujuan perekaman aktif; penulisan langsung ditolak.
+- Endpoint API baru:
+  - `POST /api/student/audio/upload`: pembuatan draft rekaman dan penerbitan *signed upload URL* Supabase Storage privat.
+  - `POST /api/student/audio/finalize`: validasi dan penguncian status rekaman menjadi `ready`.
+  - `GET /api/assessment-sessions/[id]/recordings/[recordingId]`: penerbitan *signed playback URL* berbatas waktu pendek (60 detik) untuk pemutar audio guru/wali tanpa kebocoran URL permanen.
+- Validasi input: `src/lib/assessment/audio.ts`.
+- Pengujian otomatis:
+  - `tests/audio-input.test.mjs`: pengujian boundary durasi, ukuran byte, format MIME, dan UUID.
+  - `tests/audio-endpoints.test.mjs`: pengujian simulasi upload, penolakan tanpa izin perwalian (403), otentikasi (401), penerbitan signed URL, dan Cache-Control no-store.
+  - `supabase/tests/private-audio.sql`: skrip rollback untuk pengujian transaksi pengunggahan, pencabutan izin perwalian yang langsung memblokir playback, dan larangan penulisan langsung.
+  - Ditambahkan ke runner `scripts/test-db.mjs` (total 9 skrip tes rollback).
+- Hasil verifikasi aktual:
+  - `npm run typecheck`: exit 0 (0 error).
+  - `npm run lint`: exit 0 (0 warning).
+  - `npm run build`: exit 0 (semua 16 rute terkompilasi sukses).
+  - `node --experimental-strip-types --test tests/*.test.mjs`: **12/12 file tes lulus**.
+
+## Siklus hidup sesi asesmen, task attempts, dan session events (29 Oktober 2026)
+
+- Migrasi `202610230009_session_lifecycle.sql`:
+  - Membuka constraint status `assessment_sessions` ke `draft`, `in_progress`, `completed`, `cancelled` beserta kolom `theme_key`, `presentation_context`, `started_at`, `ended_at`.
+  - Menambahkan tabel `task_attempts` ber-idempoten (`session_id, item_key, attempt_number` dan `session_id, request_id`), mencakup jenis encounter petualangan (`letter_arrange`, `spelling_image`, `word_read`, `passage_read`, `comprehension`) dan fase (`warmup`, `practice`, `screening`).
+  - Menambahkan tabel `session_events` dengan trigger proteksi *append-only* (update dan delete dilarang) untuk event `session_started`, `pause_requested`, `resumed`, `teacher_called`, `session_completed`, `session_cancelled`.
+  - RPC aman: `start_assessment_session`, `record_session_event`, `save_task_attempt`, dan `complete_assessment_session`.
+- Endpoint API baru:
+  - `POST /api/assessment-sessions/[id]/start`: transisi sesi ke `in_progress` dan pencatatan event mulai.
+  - `POST /api/assessment-sessions/[id]/complete`: transisi sesi ke `completed` dan pencatatan timestamp selesai.
+  - `POST /api/assessment-sessions/[id]/events`: pencatatan event mid-session (jeda, resume, panggil guru).
+  - `POST /api/student/task-attempts`: penyimpanan pengerjaan siswa dalam mode siswa ber-idempoten.
+- Validasi input dan modul: `src/lib/assessment/lifecycle.ts`.
+- Pengujian otomatis:
+  - `tests/session-lifecycle-input.test.mjs`: pengujian boundary dan sanitasi parameter input.
+  - `tests/session-lifecycle-endpoints.test.mjs`: pengujian route POST, Origin staging, autentikasi 401, penanganan 400/403/503, dan header `Cache-Control: private, no-store`.
+  - `supabase/tests/session-lifecycle.sql`: skrip rollback untuk pengujian validasi status sesi, trigger append-only event, penyimpanan attempt idempoten, dan penolakan akses lintas guru/siswa.
+  - Ditambahkan ke daftar runner `scripts/test-db.mjs` (total 8 skrip tes rollback).
+- Hasil verifikasi aktual:
+  - `npm run typecheck`: exit 0 (0 error).
+  - `npm run lint`: exit 0 (0 warning).
+  - `npm run build`: exit 0 (semua 14 rute terkompilasi sukses).
+  - `node --experimental-strip-types --test tests/*.test.mjs`: **10/10 file tes lulus**.
 
 ### Konflik spesifikasi yang tidak boleh mengendurkan keamanan
 
