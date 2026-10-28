@@ -1,5 +1,48 @@
 # Dyscovery: Implementation Progress
 
+## Checkpoint aktif dan korelasi spesifikasi (29 Oktober 2026)
+
+Target pemilik: penyelesaian hari ini, sebelum deadline 30 Oktober. Core MVP PRD §11 tidak dikurangi: petualangan, audio privat, AI pascarekaman, review waveform, direktori psikolog dan sharing tetap kebutuhan terbuka. Target waktu bukan bukti implementasi selesai. Bagian historis di bawah merekam keadaan saat ditulis; gunakan checkpoint ini untuk status sekarang.
+
+| Acuan | Bukti implementasi | Status dan batas |
+|---|---|---|
+| PRD §2; Security Rules §2 | Migrasi 001–003, API auth/profil/children | Auth dan assignment tersedia; Google/manual diuji pemilik. Provisioning operator belum menjadi workflow teraudit lengkap. |
+| PRD §8; Security Rules §4; ERD §2 | Migrasi 004, guardian_links/consent_notices/consent_events | Consent berversi dan seluruh wali terkait tersedia; prosedur verifikasi wali nyata belum tuntas. |
+| PRD §7; ERD §3 | Migrasi 005, materials/assessment-sessions API | Materi immutable dan draf idempoten; belum lifecycle sesi penuh. |
+| PRD §2.2; Workflow §2; Security Rules §3 | Migrasi 006–007, teacher_device_modes | Lock akun dan PIN khusus sintetis; bukan implementasi STUDENT_ACCESS independen, MFA, atau isolasi cache/history menyeluruh. |
+| PRD §5.2 | Migrasi 008, student/practice API | Satu latihan teks sintetis tanpa skor; bukan lima pos petualangan atau instrumen skrining. |
+| Workflow §3–4; ERD §3 | Commit 37857d5, assessment-sessions/[id]/practice | Guru membaca respons setelah unlock, diuji pemilik; belum anotasi, rubrik, finalisasi review atau laporan. |
+| PRD §11; Workflow §2–3 | Belum ada modul end-to-end | Audio, upload privat, AI, alignment dan waveform belum diimplementasikan. |
+| PRD §11; ERD §4; Workflow §4–5 | Belum ada migrasi/API | Laporan, direktori psikolog, sharing kedaluwarsa dan konsultasi belum diimplementasikan. |
+| Security Rules §11 | Tes Node, SQL rollback, uji manual sebagian | Runner remote belum berhasil dimulai karena PATH psql; bukan bukti semua RLS lulus atau siap data nyata. |
+
+### Urutan kerja dan gerbang penerimaan
+
+- [ ] Tuntaskan runner SQL dan tujuh tes rollback pada project sintetis; stop pada error pertama. Tidak menjalankan seed/migrasi otomatis.
+- [ ] Lifecycle dan task_attempts/session_events, validasi jenis respons serta idempotensi. Materi tetap sintetis sampai instrumen/protokol ahli tersedia.
+- [ ] Audio privat: metadata, izin upload terikat task/consent, validasi finalisasi, retry tanpa overwrite dan playback terotorisasi.
+- [ ] Review manual berversi dan laporan immutable; tidak mengarang rubrik, skor atau pedoman. Respons teks saat ini bukan review formal.
+- [ ] AI pascarekaman hanya setelah provider gate dan consent terpenuhi; hasil kandidat, jalur manual tetap bekerja. Latensi 2–15 detik/penghematan 80–90% belum terbukti.
+- [ ] Direktori psikolog terverifikasi dan sharing versi laporan dengan expires_at wajib, audio default tidak disertakan; uji pencabutan/akses lintas akun.
+- [ ] Integrasi FE, regresi deployment, update bukti pengujian, lalu commit/push dengan persetujuan pemilik. Tidak mencentang acceptance PRD berdasarkan dokumentasi saja.
+
+### Konflik spesifikasi yang tidak boleh mengendurkan keamanan
+
+- Workflow persiapan mensyaratkan audio untuk seluruh sesi, tetapi Security Rules §4 membolehkan tugas non-audio; implementasi mempertahankan izin per tujuan, tidak memaksa consent audio untuk tugas teks.
+- PRD/ERD menyebut PIN secara umum; Security Rules §3 membatasinya untuk sintetis. Penggunaan nyata tetap membutuhkan MFA dan hardening.
+- ERD adalah target logis, belum inventaris skema terpasang. teacher_profiles, consent_notices, teacher_device_modes dan practice_responses tetap ada; jangan menghapus/mengganti tabel tanpa migrasi yang direview.
+- Klaim performa dan kredensial psikolog harus memiliki bukti; NIP saja bukan bukti kewenangan praktik. Pencabutan sharing tidak menarik kembali unduhan lama.
+
+## Otomasi SQL lokal
+
+- Pada shell pemilik, npm menyerap argumen `--service`. Gunakan `npm run test:db:synthetic` (service dyscovery-test sudah ditentukan dalam script) atau `node scripts/test-db.mjs --service dyscovery-test`. Tidak ada password dalam package.json. Tes konfigurasi script gagal sebelum perubahan lalu lulus setelahnya.
+- Client ditemukan di `C:\Program Files\PostgreSQL\17\bin` (17.5), PATH pengguna dikonfigurasi. Service lokal di luar Git dan PGSERVICEFILE pengguna sudah dibuat. Pemilik membuktikan koneksi psql interaktif berhasil ke database postgres sebagai postgres melalui session pooler. Password belum disimpan untuk otomasi; gunakan PGPASSWORD sementara hanya di terminal lokal dan bersihkan lewat finally. Tes remote belum terbukti berjalan; percobaan npm sebelumnya berhenti pada parsing argumen sebelum koneksi.
+
+- `npm run test:db -- --service dyscovery-test` menjalankan tujuh tes rollback melalui psql, berhenti pada error pertama (`ON_ERROR_STOP=1`, tanpa psqlrc), tidak menjalankan seed persisten atau migrasi. `npm run test:db -- --list` menampilkan allowlist. Hanya gunakan database pengujian sintetis yang telah menerima migrasi 001–008; jangan jalankan paralel karena fixture menggunakan UUID tetap.
+- Koneksi memakai PostgreSQL service lokal (PGSERVICEFILE/pg_service.conf) dan password file di luar repository; bukan anon key/service-role API. Konfigurasi SSL minimal require, disarankan verify-full dengan sertifikat sesuai petunjuk Supabase. Runner tidak menerima URL/password sebagai argumen dan tidak membuat endpoint SQL. Ini kontrol terhadap file tes yang direview, bukan sandbox SQL umum.
+- psql 17.5 terpasang dan koneksi interaktif dibuktikan pemilik. Terminal runner terakhir belum mewarisi PATH bin PostgreSQL; tes berhenti sebelum mengakses DB. Tes runner dan seluruh delapan file tes Node pernah lulus, lint lulus. Jangan menaruh kredensial di Git atau chat. Otomasi belum commit/push.
+- Pemilik melaporkan pembacaan respons guru sesuai pada deployment 37857d5. Draf latihan v2 yang benar: 865694c9-2e97-4044-898c-38515e11b3ea. Draf 69f42e3e-6ab4-4c60-98dc-9151cb9d1ccf memakai materi v1 kosong, sehingga GET practice menolak 400; jangan gunakan draf itu untuk latihan text-practice-v1 atau mengubah materi immutable.
+
 ## Pembacaan respons sintetis oleh guru (28 Oktober 2026)
 
 - GET `/api/assessment-sessions/[id]/practice` membaca `id`, `status`, dan `practice_responses(item_key,response,created_at)` dalam satu query menggunakan client pengguna dan RLS, tanpa service-role. ID invalid 400, belum login 401, sesi tidak ada/tidak diizinkan 404 (tidak membocorkan keberadaan), gangguan database 503; seluruh respons private/no-store.

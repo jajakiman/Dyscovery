@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:db": "node scripts/test-db.mjs",
+    "test:db:synthetic": "node scripts/test-db.mjs --service dyscovery-test"
   },
   "engines": {
     "node": ">=22.17.0 <23"
