@@ -13,18 +13,44 @@ Target pemilik: penyelesaian hari ini, sebelum deadline 30 Oktober. Core MVP PRD
 | PRD §5.2 | Migrasi 008, student/practice API | Satu latihan teks sintetis tanpa skor; bukan lima pos petualangan atau instrumen skrining. |
 | Workflow §3–4; ERD §3 & §4 | Migrasi 011, review_revisions, review_annotations, report_versions, report_reviews, reviews & reports API | Peninjauan berversi immutable saat finalized, laporan observasi snapshot immutable saat published, tidak mengarang skor diagnosis; diuji lokal (14 file tes Node & rollback SQL test). |
 | PRD §11; Workflow §2–3 | Migrasi 010, recordings, student audio upload/finalize API & playback | Audio privat terikat izin perwalian 'recording', storage key anonym, signed upload/download URL, retry tanpa overwrite; diuji secara lokal (12 file tes Node & rollback SQL test). |
+| PRD §6; Security Rules §7; ERD §3 | Migrasi 012, ai_analyses, ai_annotations, route ai/dispatch & ai GET | AI pascarekaman terlindung provider gate (Security Rules §7) dan consent purpose='ai'; kandidat anotasi waveform untuk guru, fallback mulus ke manual; diuji lokal (16 file tes Node & rollback SQL test). |
 | PRD §11; ERD §4; Workflow §4–5 | Belum ada migrasi/API | Direktori psikolog, sharing kedaluwarsa dan konsultasi belum diimplementasikan. |
 | Security Rules §11 | Tes Node, SQL rollback, uji manual sebagian | Runner remote belum berhasil dimulai karena PATH psql; bukan bukti semua RLS lulus atau siap data nyata. |
 
 ### Urutan kerja dan gerbang penerimaan
 
-- [ ] Tuntaskan runner SQL dan sepuluh tes rollback pada project sintetis; stop pada error pertama. Tidak menjalankan seed/migrasi otomatis.
+- [ ] Tuntaskan runner SQL dan sebelas tes rollback pada project sintetis; stop pada error pertama. Tidak menjalankan seed/migrasi otomatis.
 - [x] Lifecycle dan task_attempts/session_events, validasi jenis respons serta idempotensi. Materi tetap sintetis sampai instrumen/protokol ahli tersedia.
 - [x] Audio privat: metadata, izin upload terikat task/consent, validasi finalisasi, retry tanpa overwrite dan playback terotorisasi.
 - [x] Review manual berversi dan laporan immutable; tidak mengarang rubrik, skor atau pedoman. Respons teks saat ini bukan review formal.
-- [ ] AI pascarekaman hanya setelah provider gate dan consent terpenuhi; hasil kandidat, jalur manual tetap bekerja. Latensi 2–15 detik/penghematan 80–90% belum terbukti.
+- [x] AI pascarekaman hanya setelah provider gate dan consent terpenuhi; hasil kandidat, jalur manual tetap bekerja. Latensi 2–15 detik/penghematan 80–90% belum terbukti.
 - [ ] Direktori psikolog terverifikasi dan sharing versi laporan dengan expires_at wajib, audio default tidak disertakan; uji pencabutan/akses lintas akun.
 - [ ] Integrasi FE, regresi deployment, update bukti pengujian, lalu commit/push dengan persetujuan pemilik. Tidak mencentang acceptance PRD berdasarkan dokumentasi saja.
+
+## Modul AI pascarekaman, candidate annotations, dan provider gate (29 Oktober 2026)
+
+- Migrasi `202610230012_post_recording_ai.sql`:
+  - Tabel `ai_analyses`: analisis berbasis rekaman audio (`recording_id`), status `queued`, `processing`, `completed`, `failed`, metadata model, dan durasi inferensi.
+  - Tabel `ai_annotations`: kandidat anotasi berbasis rentang audio (`start_ms`, `end_ms`), tipe anotasi kandidat (`match`, `substitution`, `omission`, `repetition`, `hesitation`), teks transkripsi kandidat, confidence score (0.00–1.00), dan `promoted_to_annotation_id` (FK ke `review_annotations` saat guru menyetujui kandidat).
+  - Proteksi trigger `protect_completed_ai_analysis`: data analisis AI bersifat immutable setelah berstatus `completed`.
+  - RPC aman: `request_ai_analysis` (memeriksa izin wali purpose `'ai'`, kunci idempotensi, dan rekaman berstatus `ready`), `record_ai_analysis_results`.
+- Security Rules §7 Provider Gate:
+  - `checkAiProviderGate()` di `src/lib/assessment/ai.ts` memastikan `ENABLE_AI_PROCESSING === "true"` dan `AI_PROVIDER_COMPLIANCE_CONFIRMED === "true"`.
+  - Jika belum aktif atau tidak terpenuhi, API secara transparan merespons dengan HTTP 200 `{ status: "fallback_to_manual" }`, menjamin peninjauan guru berjalan murni manual tanpa macet atau menimbulkan error tak terduga.
+- Endpoint API baru:
+  - `POST /api/assessment-sessions/[id]/ai/dispatch`: inisiasi analisis AI pascarekaman dengan validasi Origin, sanitasi input, provider gate, dan parental consent.
+  - `GET /api/assessment-sessions/[id]/ai`: pembacaan kandidat anotasi AI untuk disajikan sebagai overlay visual di atas waveform peninjauan guru.
+- Validasi input: `src/lib/assessment/ai.ts`.
+- Pengujian otomatis:
+  - `tests/ai-input.test.mjs`: pengujian skema permintaan, sanitasi batas data, dan mekanisme provider gate.
+  - `tests/ai-endpoints.test.mjs`: pengujian dispatch endpoint, fallback saat provider gate tidak aktif, penolakan saat izin orang tua tidak ada (403), keberhasilan dispatch, dan header privasi `Cache-Control: private, no-store`.
+  - `supabase/tests/post-recording-ai.sql`: skrip rollback untuk verifikasi relasi `ai_analyses`, `ai_annotations`, penolakan pemrosesan tanpa consent `'ai'`, dan isolasi RLS guru/wali.
+  - Ditambahkan ke runner `scripts/test-db.mjs` (total 11 skrip tes rollback).
+- Hasil verifikasi aktual:
+  - `npm run typecheck`: exit 0 (0 error).
+  - `npm run lint`: exit 0 (0 warning).
+  - `npm run build`: exit 0 (semua 18 rute terkompilasi sukses).
+  - `node --experimental-strip-types --test tests/*.test.mjs`: **16/16 file tes lulus**.
 
 ## Peninjauan guru manual berversi dan laporan observasi sekolah immutable (29 Oktober 2026)
 
