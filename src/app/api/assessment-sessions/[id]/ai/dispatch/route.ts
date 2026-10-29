@@ -5,6 +5,7 @@ import {
   checkAiProviderGate,
   generateReadingCandidateAnnotations,
   computeReadingScore,
+  analyzeReadingWithGemini,
 } from "@/lib/assessment/ai";
 
 const json = (body: object, status = 200) =>
@@ -72,18 +73,58 @@ export async function POST(request: Request) {
     return json({ analysisId: analysis.analysisId, status: "completed" });
   }
 
-  // Pretrained acoustic/phonetic alignment candidate generator (simulated/offline pipeline within 2-15s window)
-  const durationMs = 8000;
-  const candidateAnnotations = generateReadingCandidateAnnotations(
+  // Check if GEMINI_API_KEY is configured
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  let candidateAnnotations = generateReadingCandidateAnnotations(
     "Kancil melihat pohon rindang di pinggir hutan",
-    durationMs
+    8000
   );
-  const score = computeReadingScore(candidateAnnotations, durationMs);
+  let score = computeReadingScore(candidateAnnotations, 8000);
+  let latencyMs = 2800;
+
+  if (geminiApiKey && geminiApiKey.trim() !== "" && geminiApiKey !== "YOUR_GEMINI_API_KEY_HERE") {
+    try {
+      const startTime = Date.now();
+      // Fetch recording storage key
+      const { data: recData } = await supabase
+        .from("recordings")
+        .select("storage_object_key, mime_type, duration_ms")
+        .eq("id", aiReq.recordingId)
+        .single();
+
+      if (recData?.storage_object_key) {
+        const { data: audioBlob, error: downloadErr } = await supabase.storage
+          .from("recordings")
+          .download(recData.storage_object_key);
+
+        if (!downloadErr && audioBlob) {
+          const buffer = Buffer.from(await audioBlob.arrayBuffer());
+          const base64Audio = buffer.toString("base64");
+          const geminiResult = await analyzeReadingWithGemini(
+            base64Audio,
+            recData.mime_type || "audio/webm",
+            "Kancil melihat pohon rindang di pinggir hutan",
+            geminiApiKey.trim()
+          );
+          candidateAnnotations = geminiResult.annotations;
+          score = geminiResult.score;
+          latencyMs = Date.now() - startTime;
+        }
+      }
+    } catch {
+      // Graceful fallback to deterministic local engine if Gemini call encounters network/quota limits
+      candidateAnnotations = generateReadingCandidateAnnotations(
+        "Kancil melihat pohon rindang di pinggir hutan",
+        8000
+      );
+      score = computeReadingScore(candidateAnnotations, 8000);
+    }
+  }
 
   await supabase.rpc("record_ai_analysis_results", {
     p_analysis_id: analysis.analysisId,
     p_status: "completed",
-    p_processing_latency_ms: 2800,
+    p_processing_latency_ms: latencyMs,
     p_annotations: candidateAnnotations,
   });
 

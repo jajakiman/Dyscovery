@@ -186,6 +186,100 @@ export function generateReadingCandidateAnnotations(
 }
 
 /**
+ * Calls Gemini 1.5 Flash multimodal audio endpoint to transcribe and align child speech
+ * with reference reading stimulus, without auto-correcting phonological hesitations/errors.
+ */
+export async function analyzeReadingWithGemini(
+  audioBase64: string,
+  mimeType: string,
+  referenceText: string,
+  apiKey: string
+): Promise<{
+  annotations: AiCandidateAnnotation[];
+  score: ReadingScoreMetrics;
+}> {
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+  const systemInstruction = `Kamu adalah AI fonetik observasi membaca untuk siswa kelas 2 SD (7-8 tahun).
+Tugasmu: Dengarkan rekaman audio siswa saat membaca teks cerita acuan berikut secara objektif.
+Teks cerita acuan: "${referenceText}"
+
+ATURAN KETAT:
+1. JANGAN PERNAH melakukan auto-correct pada ucapan anak.
+2. Jika anak ragu atau jeda membaca kata, tandai "hesitation".
+3. Jika anak salah sebut kata/huruf (misal cadel/substitusi), tandai "substitution" dan catat kata yang terdengar.
+4. Jika kata terlewat tidak dibaca, tandai "omission".
+5. Jika kata dibaca tepat, tandai "match".
+6. Estimasi stempel waktu audio (audioStartMs, audioEndMs) dan confidence score (0.0 - 1.0).
+7. Format output HARUS JSON murni dengan struktur:
+{
+  "annotations": [
+    { "observedText": "string", "annotationType": "match|substitution|omission|repetition|hesitation|unclear", "confidenceScore": number, "audioStartMs": number, "audioEndMs": number }
+  ]
+}`;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              inline_data: {
+                mime_type: mimeType || "audio/webm",
+                data: audioBase64,
+              },
+            },
+            {
+              text: systemInstruction,
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.1,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  const textOutput = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!textOutput) throw new Error("Empty response from Gemini Audio");
+
+  const parsed = JSON.parse(textOutput);
+  const rawAnns = Array.isArray(parsed?.annotations) ? parsed.annotations : [];
+
+  const annotations: AiCandidateAnnotation[] = rawAnns.map((a: Record<string, unknown>, idx: number) => {
+    const type = AI_ANNOTATION_TYPES.includes(a.annotationType as AiAnnotationType)
+      ? (a.annotationType as AiAnnotationType)
+      : "match";
+    return {
+      referenceStart: typeof a.referenceStart === "number" ? a.referenceStart : idx * 10,
+      referenceEnd: typeof a.referenceEnd === "number" ? a.referenceEnd : idx * 10 + 5,
+      audioStartMs: typeof a.audioStartMs === "number" ? a.audioStartMs : idx * 1000,
+      audioEndMs: typeof a.audioEndMs === "number" ? a.audioEndMs : idx * 1000 + 900,
+      annotationType: type,
+      observedText: typeof a.observedText === "string" ? a.observedText : undefined,
+      confidenceScore: typeof a.confidenceScore === "number" ? Math.min(Math.max(a.confidenceScore, 0), 1) : 0.9,
+    };
+  });
+
+  const durationMs = annotations.length > 0
+    ? Math.max(...annotations.map(a => a.audioEndMs ?? 1000), 8000)
+    : 8000;
+
+  const score = computeReadingScore(annotations, durationMs);
+  return { annotations, score };
+}
+
+/**
  * Checks provider compliance and environment gate as mandated by Security Rules §7 and PRD §3.3.
  * AI analysis on children's voice recordings remains disabled unless compliance and terms of service
  * are explicitly confirmed. If disabled, system falls back to pure manual teacher review.
