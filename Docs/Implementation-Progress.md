@@ -14,18 +14,47 @@ Target pemilik: penyelesaian hari ini, sebelum deadline 30 Oktober. Core MVP PRD
 | Workflow §3–4; ERD §3 & §4 | Migrasi 011, review_revisions, review_annotations, report_versions, report_reviews, reviews & reports API | Peninjauan berversi immutable saat finalized, laporan observasi snapshot immutable saat published, tidak mengarang skor diagnosis; diuji lokal (14 file tes Node & rollback SQL test). |
 | PRD §11; Workflow §2–3 | Migrasi 010, recordings, student audio upload/finalize API & playback | Audio privat terikat izin perwalian 'recording', storage key anonym, signed upload/download URL, retry tanpa overwrite; diuji secara lokal (12 file tes Node & rollback SQL test). |
 | PRD §6; Security Rules §7; ERD §3 | Migrasi 012, ai_analyses, ai_annotations, route ai/dispatch & ai GET | AI pascarekaman terlindung provider gate (Security Rules §7) dan consent purpose='ai'; kandidat anotasi waveform untuk guru, fallback mulus ke manual; diuji lokal (16 file tes Node & rollback SQL test). |
-| PRD §11; ERD §4; Workflow §4–5 | Belum ada migrasi/API | Direktori psikolog, sharing kedaluwarsa dan konsultasi belum diimplementasikan. |
+| PRD §11; ERD §4; Workflow §4–5 | Migrasi 013, psychologist_profiles, report_shares, consultation_requests, audit_events, API psychologists, reports/[id]/shares, consultations | Direktori psikolog terverifikasi (STR/NIP, klinik), izin berbagi laporan berbatas waktu (expires_at wajib, default exclude audio), permohonan konsultasi rahasia (guru diblokir RLS), jejak audit; diuji lokal (18 file tes Node & 12 skrip rollback SQL test). |
 | Security Rules §11 | Tes Node, SQL rollback, uji manual sebagian | Runner remote belum berhasil dimulai karena PATH psql; bukan bukti semua RLS lulus atau siap data nyata. |
 
 ### Urutan kerja dan gerbang penerimaan
 
-- [ ] Tuntaskan runner SQL dan sebelas tes rollback pada project sintetis; stop pada error pertama. Tidak menjalankan seed/migrasi otomatis.
+- [ ] Tuntaskan runner SQL dan dua belas tes rollback pada project sintetis; stop pada error pertama. Tidak menjalankan seed/migrasi otomatis.
 - [x] Lifecycle dan task_attempts/session_events, validasi jenis respons serta idempotensi. Materi tetap sintetis sampai instrumen/protokol ahli tersedia.
 - [x] Audio privat: metadata, izin upload terikat task/consent, validasi finalisasi, retry tanpa overwrite dan playback terotorisasi.
 - [x] Review manual berversi dan laporan immutable; tidak mengarang rubrik, skor atau pedoman. Respons teks saat ini bukan review formal.
 - [x] AI pascarekaman hanya setelah provider gate dan consent terpenuhi; hasil kandidat, jalur manual tetap bekerja. Latensi 2–15 detik/penghematan 80–90% belum terbukti.
-- [ ] Direktori psikolog terverifikasi dan sharing versi laporan dengan expires_at wajib, audio default tidak disertakan; uji pencabutan/akses lintas akun.
+- [x] Direktori psikolog terverifikasi dan sharing versi laporan dengan expires_at wajib, audio default tidak disertakan; uji pencabutan/akses lintas akun.
 - [ ] Integrasi FE, regresi deployment, update bukti pengujian, lalu commit/push dengan persetujuan pemilik. Tidak mencentang acceptance PRD berdasarkan dokumentasi saja.
+
+## Direktori psikolog terverifikasi, pembagian laporan berbatas waktu, dan permohonan konsultasi (29 Oktober 2026)
+
+- Migrasi `202610230013_psychologist_directory_and_sharing.sql`:
+  - Tabel `psychologist_profiles`: menyimpan data profesional publik terverifikasi (avatar URL, nomor STR/NIP resmi, tipe kredensial `'STR_PSIKOLOG_KLINIS'` / `'NIP_INSTITUSI'`, nama fasilitas/institusi, alamat klinik, status verifikasi dan stempel waktu verifikasi).
+  - Tabel `report_shares`: menghubungkan wali murid (`guardian_link_id`) dengan psikolog klinis terverifikasi (`psychologist_id`). Memuat `expires_at` wajib (*time-bound access* di masa mendatang), cakupan `scope` dengan rekaman audio mentah dikecualikan secara default (`"include_audio": false`), serta `revoked_at` untuk pencabutan izin seketika. Trigger `protect_report_share` menjamin imutabilitas izin (hanya pencabutan `revoked_at` yang diizinkan, baris tidak dapat dihapus).
+  - Tabel `consultation_requests`: permohonan jadwal konsultasi awal orang tua kepada psikolog yang dipilih dari direktori (status `'pending'`, `'accepted'`, `'declined'`, `'completed'`). Dilindungi kerahasiaan medis: guru sekolah tidak memiliki akses pembacaan (RLS memblokir akses guru secara ketat).
+  - Tabel `audit_events`: buku besar audit *append-only* (dilindungi trigger anti-update/delete) yang mencatat pelaku, tindakan, tipe objek internal, waktu kejadian, dan hasil operasi otorisasi.
+  - Perluasan kebijakan RLS `report_versions` & `recordings`: psikolog hanya dapat membaca laporan jika terdapat `report_shares` aktif yang belum kedaluwarsa dan belum dicabut; rekaman audio hanya dapat diakses psikolog jika `scope->>'include_audio' = 'true'`.
+  - RPC aman: `grant_report_share`, `revoke_report_share`, `create_consultation_request`, `respond_consultation_request`.
+- Endpoint API baru:
+  - `GET /api/psychologists`: direktori publik resmi kartu profil psikolog terverifikasi bagi orang tua.
+  - `POST /api/reports/[id]/shares`: pemberian izin berbagi laporan versi terbit berbatas waktu oleh orang tua.
+  - `GET /api/reports/[id]/shares`: pembacaan daftar izin berbagi laporan.
+  - `DELETE /api/reports/[id]/shares/[shareId]`: pencabutan izin berbagi laporan secara instan oleh wali murid.
+  - `POST /api/consultations`: pengajuan permohonan konsultasi klinis awal oleh wali murid.
+  - `GET /api/consultations`: pembacaan riwayat konsultasi bagi wali dan psikolog (terisolasi dari guru).
+  - `PATCH /api/consultations`: pembaruan status permohonan konsultasi oleh psikolog penerima.
+- Validasi input: `src/lib/psychologist/directory-share.ts`.
+- Pengujian otomatis:
+  - `tests/psychologist-input.test.mjs`: pengujian validasi UUID, penolakan kedaluwarsa masa lampau, default eksklusi audio, pembatasan karakter catatan konsultasi, dan validasi enum status tanggapan.
+  - `tests/psychologist-endpoints.test.mjs`: pengujian seluruh rute direktori, berbagi, pencabutan, dan konsultasi; pengujian validasi Origin, penolakan tanpa otentikasi (401), dan header privasi `Cache-Control: private, no-store`.
+  - `supabase/tests/psychologist-sharing.sql`: skrip tes rollback komprehensif menguji filter direktori (psikolog pending tidak tampil), penolakan berbagi ke psikolog belum terverifikasi, penolakan akses audio saat `include_audio = false`, pembukaan akses audio saat `include_audio = true`, penghentian akses seketika saat izin dicabut, respons konsultasi psikolog, proteksi isolasi guru dari konsultasi medis, dan pencatatan audit log.
+  - Terdaftar di runner `scripts/test-db.mjs` (total 12 skrip tes rollback).
+- Hasil verifikasi aktual:
+  - `npm run typecheck`: exit 0 (0 error).
+  - `npm run lint`: exit 0 (0 warning).
+  - `npm run build`: exit 0 (semua 22 rute terkompilasi sukses).
+  - `node --experimental-strip-types --test tests/*.test.mjs`: **18/18 file tes lulus**.
 
 ## Modul AI pascarekaman, candidate annotations, dan provider gate (29 Oktober 2026)
 
