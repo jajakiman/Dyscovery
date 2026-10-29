@@ -140,7 +140,9 @@ const validHeaders = { origin: 'https://dyscovery.vercel.app', 'content-type': '
   assert.equal(okDispatch.headers.get('cache-control'), 'private, no-store');
   const dispatchBody = await okDispatch.json();
   assert.equal(dispatchBody.status, 'completed');
-  assert.equal(dispatchBody.candidateAnnotationsCount, 1);
+  assert.equal(dispatchBody.candidateAnnotationsCount, 7);
+  assert.ok(dispatchBody.score.accuracyScore >= 0);
+  assert.equal(dispatchBody.score.totalWords, 7);
   assert.ok(lastRpc);
 
   // Clean up env

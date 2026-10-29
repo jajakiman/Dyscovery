@@ -3,6 +3,8 @@ import {
   requestAiAnalysisInput,
   recordAiResultsInput,
   checkAiProviderGate,
+  computeReadingScore,
+  generateReadingCandidateAnnotations,
 } from '../src/lib/assessment/ai.ts';
 
 // 1. Request AI Analysis input checks
@@ -79,6 +81,19 @@ for (const badRes of [
   else delete process.env.ENABLE_AI_PROCESSING;
   if (oldConfirm) process.env.AI_PROVIDER_COMPLIANCE_CONFIRMED = oldConfirm;
   else delete process.env.AI_PROVIDER_COMPLIANCE_CONFIRMED;
+}
+
+// 4. Reading score calculation and candidate annotations
+{
+  const anns = generateReadingCandidateAnnotations('Kancil melihat pohon rindang di pinggir hutan', 8000);
+  assert.equal(anns.length, 7);
+  assert.equal(anns[0].observedText, 'Kancil');
+  assert.equal(anns[0].annotationType, 'match');
+
+  const score = computeReadingScore(anns, 8000);
+  assert.equal(score.totalWords, 7);
+  assert.ok(score.accuracyScore > 50 && score.accuracyScore <= 100);
+  assert.ok(score.fluencyWpm > 0);
 }
 
 console.log('AI analysis input and provider gate checks passed');

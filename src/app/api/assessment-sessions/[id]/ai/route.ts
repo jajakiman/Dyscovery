@@ -27,5 +27,24 @@ export async function GET(
 
   if (result.error) return json({ error: "Kandidat anotasi AI tidak tersedia atau izin akses dicabut." }, 503);
 
-  return json({ analyses: result.data });
+  const analysesWithScores = (result.data ?? []).map((analysis) => {
+    const rawAnns = (analysis.ai_annotations ?? []) as Array<{
+      annotation_type: string;
+    }>;
+    const annotationsCount = rawAnns.length;
+    const correctCount = rawAnns.filter((a) => a.annotation_type === "match").length;
+    const accuracyScore = annotationsCount > 0 ? Math.round((correctCount / annotationsCount) * 100) : 0;
+
+    return {
+      ...analysis,
+      score: {
+        accuracyScore,
+        totalWords: annotationsCount,
+        correctWords: correctCount,
+        incorrectWords: annotationsCount - correctCount,
+      },
+    };
+  });
+
+  return json({ analyses: analysesWithScores });
 }

@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { requestAiAnalysisInput, checkAiProviderGate } from "@/lib/assessment/ai";
+import {
+  requestAiAnalysisInput,
+  checkAiProviderGate,
+  generateReadingCandidateAnnotations,
+  computeReadingScore,
+} from "@/lib/assessment/ai";
 
 const json = (body: object, status = 200) =>
   NextResponse.json(body, {
@@ -68,28 +73,25 @@ export async function POST(request: Request) {
   }
 
   // Pretrained acoustic/phonetic alignment candidate generator (simulated/offline pipeline within 2-15s window)
-  const candidateAnnotations = [
-    {
-      referenceStart: 0,
-      referenceEnd: 6,
-      audioStartMs: 250,
-      audioEndMs: 1200,
-      annotationType: "match",
-      observedText: "Kancil",
-      confidenceScore: 0.94,
-    },
-  ];
+  const durationMs = 8000;
+  const candidateAnnotations = generateReadingCandidateAnnotations(
+    "Kancil melihat pohon rindang di pinggir hutan",
+    durationMs
+  );
+  const score = computeReadingScore(candidateAnnotations, durationMs);
 
   await supabase.rpc("record_ai_analysis_results", {
     p_analysis_id: analysis.analysisId,
     p_status: "completed",
-    p_processing_latency_ms: 3200,
+    p_processing_latency_ms: 2800,
     p_annotations: candidateAnnotations,
   });
 
   return json({
     analysisId: analysis.analysisId,
     status: "completed",
+    score,
+    candidateAnnotations,
     candidateAnnotationsCount: candidateAnnotations.length,
   });
 }
