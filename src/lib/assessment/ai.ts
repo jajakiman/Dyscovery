@@ -193,12 +193,14 @@ export async function analyzeReadingWithGemini(
   audioBase64: string,
   mimeType: string,
   referenceText: string,
-  apiKey: string
+  apiKey: string,
+  model = "gemini-3.8-flash"
 ): Promise<{
   annotations: AiCandidateAnnotation[];
   score: ReadingScoreMetrics;
 }> {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  if (!/^[a-z0-9.-]{3,80}$/.test(model)) throw new Error("Invalid Gemini model name");
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   const systemInstruction = `Kamu adalah AI fonetik observasi membaca untuk siswa kelas 2 SD (7-8 tahun).
 Tugasmu: Dengarkan rekaman audio siswa saat membaca teks cerita acuan berikut secara objektif.
@@ -220,7 +222,8 @@ ATURAN KETAT:
 
   const response = await fetch(endpoint, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+    signal: AbortSignal.timeout(50000),
     body: JSON.stringify({
       contents: [
         {
@@ -250,23 +253,28 @@ ATURAN KETAT:
   }
 
   const result = await response.json();
-  const textOutput = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const parts: Array<{ text?: string; thought?: boolean }> = result?.candidates?.[0]?.content?.parts ?? [];
+  const textOutput = parts.find((p) => p.text && !p.thought)?.text;
   if (!textOutput) throw new Error("Empty response from Gemini Audio");
 
   const parsed = JSON.parse(textOutput);
   const rawAnns = Array.isArray(parsed?.annotations) ? parsed.annotations : [];
 
-  const annotations: AiCandidateAnnotation[] = rawAnns.map((a: Record<string, unknown>, idx: number) => {
+  const int = (v: unknown, d: number) => (typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.round(v)) : d);
+  const annotations: AiCandidateAnnotation[] = rawAnns.slice(0, 200).map((a: Record<string, unknown>, idx: number) => {
     const type = AI_ANNOTATION_TYPES.includes(a.annotationType as AiAnnotationType)
       ? (a.annotationType as AiAnnotationType)
-      : "match";
+      : "unclear";
+    const refStart = int(a.referenceStart, idx * 10);
+    const audioStart = int(a.audioStartMs, idx * 1000);
+    const observed = typeof a.observedText === "string" ? a.observedText.trim().slice(0, 500) : "";
     return {
-      referenceStart: typeof a.referenceStart === "number" ? a.referenceStart : idx * 10,
-      referenceEnd: typeof a.referenceEnd === "number" ? a.referenceEnd : idx * 10 + 5,
-      audioStartMs: typeof a.audioStartMs === "number" ? a.audioStartMs : idx * 1000,
-      audioEndMs: typeof a.audioEndMs === "number" ? a.audioEndMs : idx * 1000 + 900,
+      referenceStart: refStart,
+      referenceEnd: Math.max(refStart, int(a.referenceEnd, refStart + 5)),
+      audioStartMs: audioStart,
+      audioEndMs: Math.max(audioStart, int(a.audioEndMs, audioStart + 900)),
       annotationType: type,
-      observedText: typeof a.observedText === "string" ? a.observedText : undefined,
+      observedText: observed || undefined,
       confidenceScore: typeof a.confidenceScore === "number" ? Math.min(Math.max(a.confidenceScore, 0), 1) : 0.9,
     };
   });

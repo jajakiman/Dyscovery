@@ -20,6 +20,40 @@ type Candidate = {
 
 type Session = { id: string; child_id: string; status: string; created_at: string };
 type Child = { id: string; display_name: string; grade: string };
+type AiAnnotation = { id: string; annotation_type: string; observed_text: string | null; audio_start_ms: number | null };
+type AiPayload = {
+  analyses?: Array<{ recording_id: string; status: string; task_attempt_id?: string; ai_annotations: AiAnnotation[] }>;
+  recordings?: Array<{ id: string }>;
+};
+type AiState = "none" | "ready" | "running" | "done" | "manual";
+
+const LABELS: Record<string, string> = {
+  substitution: "Dugaan Penggantian",
+  omission: "Penghilangan",
+  repetition: "Pengulangan",
+  hesitation: "Keraguan / jeda",
+  unclear: "Kurang jelas",
+};
+const mmss = (ms: number | null) => {
+  const s = Math.floor((ms ?? 0) / 1000);
+  return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+};
+// "match" is not a finding; only deviations become candidates for the teacher to verify.
+const toCandidates = (anns: AiAnnotation[]): Candidate[] =>
+  anns
+    .filter((a) => a.annotation_type !== "match")
+    .sort((a, b) => (a.audio_start_ms ?? 0) - (b.audio_start_ms ?? 0))
+    .map((a) => {
+      const sec = Math.floor((a.audio_start_ms ?? 0) / 1000);
+      return {
+        id: a.id,
+        type: a.annotation_type,
+        label: `${LABELS[a.annotation_type] ?? a.annotation_type}${a.observed_text ? `: "${a.observed_text}"` : ""}`,
+        time: mmss(a.audio_start_ms),
+        timestampSec: sec,
+        verified: false,
+      };
+    });
 
 const DEFAULT_CANDIDATES: Candidate[] = [
   { id: "c1", type: "substitution", label: "Dugaan Penggantian", time: "00:04", timestampSec: 4, verified: false },
@@ -62,10 +96,30 @@ function TeacherRecordingReviewContent() {
   const [rubricFluency, setRubricFluency] = useState(true);
   const [rubricAudioQuality, setRubricAudioQuality] = useState(true);
   const [taskAttemptId, setTaskAttemptId] = useState("");
+  const [recordingId, setRecordingId] = useState<string | null>(null);
+  const [aiState, setAiState] = useState<AiState>("none");
+  const [aiMessage, setAiMessage] = useState("");
 
   // Manual note state
   const [manualNote, setManualNote] = useState("");
   const [showAddManual, setShowAddManual] = useState(false);
+
+  async function runAi() {
+    if (!sessionId || !recordingId) return;
+    setAiState("running"); setAiMessage("");
+    const res = await api<{ status?: string; message?: string }>(`/api/assessment-sessions/${sessionId}/ai/dispatch`, {
+      recordingId,
+      idempotencyKey: `ai-${recordingId}-${Date.now()}`,
+    });
+    if (!res.ok || res.data.status !== "completed") {
+      setAiState("manual");
+      return setAiMessage(res.data.error ?? res.data.message ?? "Analisis AI belum tersedia. Lanjutkan peninjauan manual.");
+    }
+    const fresh = await api<AiPayload>(`/api/assessment-sessions/${sessionId}/ai`);
+    const done = fresh.data.analyses?.find((a) => a.status === "completed");
+    setCandidates(done ? toCandidates(done.ai_annotations) : []);
+    setAiState("done");
+  }
 
   useEffect(() => {
     let alive = true;
@@ -93,50 +147,23 @@ function TeacherRecordingReviewContent() {
 
       // Load task attempts and recordings if available
       if (activeSessId) {
-        const aiRes = await api<{
-          analyses?: Array<{
-            recording_id: string;
-            task_attempt_id?: string;
-            ai_annotations: Array<{ id: string; annotation_type: string; observed_text: string; start_time_ms?: number }>;
-          }>;
-        }>(`/api/assessment-sessions/${activeSessId}/ai`);
+        const aiRes = await api<AiPayload>(`/api/assessment-sessions/${activeSessId}/ai`);
+        if (!alive) return;
+        const done = aiRes.data.analyses?.find((a) => a.status === "completed");
+        if (done) setCandidates(toCandidates(done.ai_annotations));
+        const first = aiRes.data.analyses?.[0];
+        if (first?.task_attempt_id) setTaskAttemptId(first.task_attempt_id);
+        const recId = done?.recording_id ?? aiRes.data.recordings?.[0]?.id;
+        setRecordingId(recId ?? null);
+        setAiState(done ? "done" : recId ? "ready" : "none");
 
-        if (aiRes.ok && aiRes.data.analyses && aiRes.data.analyses.length > 0) {
-          const first = aiRes.data.analyses[0];
-          if (first.task_attempt_id) setTaskAttemptId(first.task_attempt_id);
-          const recId = first.recording_id;
-          if (recId) {
-            const playRes = await api<{ playbackUrl: string; durationMs: number }>(
-              `/api/assessment-sessions/${activeSessId}/recordings/${recId}`
-            );
-            if (playRes.ok && playRes.data.playbackUrl) {
-              setPlaybackUrl(playRes.data.playbackUrl);
-              if (playRes.data.durationMs) setDuration(Math.round(playRes.data.durationMs / 1000));
-            }
-          }
-
-          // If AI annotations are available, map them
-          if (first.ai_annotations && first.ai_annotations.length > 0) {
-            const mapped = first.ai_annotations.map((a, i) => {
-              const sec = Math.round((a.start_time_ms ?? (i + 1) * 8000) / 1000);
-              const m = Math.floor(sec / 60).toString().padStart(2, "0");
-              const s = (sec % 60).toString().padStart(2, "0");
-              const typeLabels: Record<string, string> = {
-                substitution: "Dugaan Penggantian",
-                repetition: "Pengulangan",
-                omission: "Penghilangan",
-                hesitation: "Keraguan",
-              };
-              return {
-                id: a.id,
-                type: a.annotation_type,
-                label: typeLabels[a.annotation_type] || a.annotation_type,
-                time: `${m}:${s}`,
-                timestampSec: sec,
-                verified: false,
-              };
-            });
-            setCandidates(mapped);
+        if (recId) {
+          const playRes = await api<{ playbackUrl: string; durationMs: number }>(
+            `/api/assessment-sessions/${activeSessId}/recordings/${recId}`
+          );
+          if (playRes.ok && playRes.data.playbackUrl) {
+            setPlaybackUrl(playRes.data.playbackUrl);
+            if (playRes.data.durationMs) setDuration(Math.round(playRes.data.durationMs / 1000));
           }
         }
       }
@@ -395,8 +422,17 @@ function TeacherRecordingReviewContent() {
                 </p>
               </div>
 
+              {(aiState === "ready" || aiState === "running" || aiState === "manual") && (
+                <button type="button" className="btn accent" disabled={aiState === "running"} onClick={() => void runAi()}>
+                  {aiState === "running" ? "AI sedang mendengarkan…" : "Analisis rekaman dengan AI"}
+                </button>
+              )}
+              {aiState === "none" && <p className="muted small">Contoh kandidat • belum ada rekaman siswa untuk sesi ini.</p>}
+              {aiState === "done" && candidates.length === 0 && <p className="muted small">AI tidak menemukan penyimpangan. Tetap dengarkan ulang rekaman.</p>}
+              {aiMessage && <p className="notice warn" role="alert">{aiMessage}</p>}
+
               {/* AI Candidates List */}
-              <div className="candidate-list">
+              <div className="candidate-list" aria-busy={aiState === "running"}>
                 {candidates.map((c) => (
                   <div key={c.id} className={`candidate-item ${c.verified ? "verified-row" : c.rejected ? "rejected-row" : ""}`}>
                     <div className="candidate-info">

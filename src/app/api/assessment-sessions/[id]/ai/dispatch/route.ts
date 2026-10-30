@@ -3,10 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import {
   requestAiAnalysisInput,
   checkAiProviderGate,
-  generateReadingCandidateAnnotations,
-  computeReadingScore,
   analyzeReadingWithGemini,
 } from "@/lib/assessment/ai";
+
+export const maxDuration = 60;
 
 const json = (body: object, status = 200) =>
   NextResponse.json(body, {
@@ -14,7 +14,23 @@ const json = (body: object, status = 200) =>
     headers: { "Cache-Control": "private, no-store" },
   });
 
-export async function POST(request: Request) {
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+// Reference text = prompt of the material item the recording belongs to (never sent to the child as an answer key).
+async function readingReference(supabase: Supabase, sessionId: string, taskAttemptId: string) {
+  const [attempt, session] = await Promise.all([
+    supabase.from("task_attempts").select("item_key").eq("id", taskAttemptId).single(),
+    supabase.from("assessment_sessions").select("material_version_id").eq("id", sessionId).single(),
+  ]);
+  if (attempt.error || session.error) return null;
+  const material = await supabase.from("material_versions").select("definition").eq("id", session.data.material_version_id).single();
+  const items = (material.data?.definition as { items?: Array<{ key?: string; prompt?: string }> } | null)?.items;
+  const prompt = Array.isArray(items) ? items.find((i) => i.key === attempt.data.item_key)?.prompt : undefined;
+  return typeof prompt === "string" && prompt.trim() ? prompt.trim().slice(0, 600) : null;
+}
+
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const { id: sessionId } = await context.params;
   if (request.headers.get("origin") !== "https://dyscovery.vercel.app") {
     return json({ error: "Origin tidak diizinkan." }, 403);
   }
@@ -73,60 +89,61 @@ export async function POST(request: Request) {
     return json({ analysisId: analysis.analysisId, status: "completed" });
   }
 
-  // Check if GEMINI_API_KEY is configured
-  const geminiApiKey = process.env.GEMINI_API_KEY;
-  let candidateAnnotations = generateReadingCandidateAnnotations(
-    "Kancil melihat pohon rindang di pinggir hutan",
-    8000
-  );
-  let score = computeReadingScore(candidateAnnotations, 8000);
-  let latencyMs = 2800;
+  const geminiApiKey = process.env.GEMINI_API_KEY?.trim();
+  const manual = async (reason: string) => {
+    await supabase.rpc("record_ai_analysis_results", {
+      p_analysis_id: analysis.analysisId,
+      p_status: "failed",
+      p_processing_latency_ms: null,
+      p_annotations: null,
+      p_error_message: reason,
+    });
+    return json({ status: "fallback_to_manual", message: "Analisis AI belum tersedia. Lanjutkan dengan peninjauan manual guru." });
+  };
+  if (!geminiApiKey) return manual("GEMINI_API_KEY not configured");
 
-  if (geminiApiKey && geminiApiKey.trim() !== "" && geminiApiKey !== "YOUR_GEMINI_API_KEY_HERE") {
-    try {
-      const startTime = Date.now();
-      // Fetch recording storage key
-      const { data: recData } = await supabase
-        .from("recordings")
-        .select("storage_object_key, mime_type, duration_ms")
-        .eq("id", aiReq.recordingId)
-        .single();
+  const startTime = Date.now();
+  const rec = await supabase
+    .from("recordings")
+    .select("storage_object_key, mime_type, byte_size, task_attempt_id, session_id")
+    .eq("id", aiReq.recordingId)
+    .single();
+  if (rec.error || !rec.data) return manual("Recording metadata unavailable");
+  if (rec.data.session_id !== sessionId) return json({ error: "Rekaman tidak sesuai dengan sesi ini." }, 404);
+  // Inline audio limit is 20 MB per request; base64 adds ~33%.
+  if ((rec.data.byte_size ?? 0) > 14 * 1024 * 1024) return manual("Recording too large for inline analysis");
 
-      if (recData?.storage_object_key) {
-        const { data: audioBlob, error: downloadErr } = await supabase.storage
-          .from("recordings")
-          .download(recData.storage_object_key);
+  const referenceText = await readingReference(supabase, rec.data.session_id, rec.data.task_attempt_id);
+  if (!referenceText) return manual("Reference text unavailable");
 
-        if (!downloadErr && audioBlob) {
-          const buffer = Buffer.from(await audioBlob.arrayBuffer());
-          const base64Audio = buffer.toString("base64");
-          const geminiResult = await analyzeReadingWithGemini(
-            base64Audio,
-            recData.mime_type || "audio/webm",
-            "Kancil melihat pohon rindang di pinggir hutan",
-            geminiApiKey.trim()
-          );
-          candidateAnnotations = geminiResult.annotations;
-          score = geminiResult.score;
-          latencyMs = Date.now() - startTime;
-        }
-      }
-    } catch {
-      // Graceful fallback to deterministic local engine if Gemini call encounters network/quota limits
-      candidateAnnotations = generateReadingCandidateAnnotations(
-        "Kancil melihat pohon rindang di pinggir hutan",
-        8000
-      );
-      score = computeReadingScore(candidateAnnotations, 8000);
-    }
+  const download = await supabase.storage.from("private-recordings").download(rec.data.storage_object_key);
+  if (download.error || !download.data) return manual("Recording download failed");
+
+  let candidateAnnotations;
+  let score;
+  try {
+    const result = await analyzeReadingWithGemini(
+      Buffer.from(await download.data.arrayBuffer()).toString("base64"),
+      rec.data.mime_type || "audio/webm",
+      referenceText,
+      geminiApiKey,
+      process.env.GEMINI_MODEL?.trim() || undefined
+    );
+    candidateAnnotations = result.annotations;
+    score = result.score;
+  } catch (error) {
+    console.error("Gemini analysis failed", error instanceof Error ? error.message : "unknown");
+    return manual("Gemini request failed");
   }
+  const latencyMs = Math.min(60000, Date.now() - startTime);
 
-  await supabase.rpc("record_ai_analysis_results", {
+  const saved = await supabase.rpc("record_ai_analysis_results", {
     p_analysis_id: analysis.analysisId,
     p_status: "completed",
     p_processing_latency_ms: latencyMs,
     p_annotations: candidateAnnotations,
   });
+  if (saved.error) return json({ error: "Hasil AI tidak tersimpan. Gunakan peninjauan manual." }, 503);
 
   return json({
     analysisId: analysis.analysisId,

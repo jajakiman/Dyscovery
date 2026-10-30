@@ -46,5 +46,12 @@ export async function GET(
     };
   });
 
-  return json({ analyses: analysesWithScores });
+  const recordings = await supabase
+    .from("recordings")
+    .select("id,created_at")
+    .eq("session_id", sessionId)
+    .eq("upload_status", "ready")
+    .order("created_at", { ascending: false });
+
+  return json({ analyses: analysesWithScores, recordings: recordings.data ?? [] });
 }

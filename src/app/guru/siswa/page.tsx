@@ -142,7 +142,7 @@ export default function StudentRoster() {
     if (!picked) return;
     setMessage("");
     // Ensure draft session exists or create one
-    let target = drafts(picked.id)[0];
+    const target = drafts(picked.id)[0];
     const assignment = assignments.find((item) => item.child_id === picked.id);
 
     if (!target && assignment) {
