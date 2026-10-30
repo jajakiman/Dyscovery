@@ -521,22 +521,22 @@ body {
    Hero Section & Interactive Master Console
    ========================================================================== */
 .lp-hero-section {
-  padding-top: 24px;
-  padding-bottom: 72px;
+  padding-top: 84px;
+  padding-bottom: 96px;
   background-color: var(--lp-bg);
 }
 
 .lp-hero-grid {
   display: grid;
   grid-template-columns: 1fr 1.15fr;
-  gap: 48px;
+  gap: 56px;
   align-items: center;
 }
 
 .lp-hero-copy {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 }
 
 /* Piko Hero Feature Card */
