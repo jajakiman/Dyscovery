@@ -5,79 +5,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import "./landing.css";
 
-interface ModulePreview {
-  id: string;
-  tabLabel: string;
-  moduleTitle: string;
-  stimulusLabel: string;
-  syllables: string[];
-  aiDraftTitle: string;
-  aiDraftDesc: string;
-  highlightMetric: string;
-  highlightLabel: string;
-}
-
-const MODULE_PREVIEWS: ModulePreview[] = [
-  {
-    id: "pos-bacaan",
-    tabLabel: "Sinkronisasi Audio",
-    moduleTitle: "Prasasti Cerita Hutan (Pos 4)",
-    stimulusLabel: "Contoh kartu stimulus bacaan (Tipografi Andika ramah anak):",
-    syllables: ["Pe", "tu", "a", "lang", "an", "Pi", "ko", "di", "hu", "tan", "hijau"],
-    aiDraftTitle: "Asisten Draf AI: Penandaan Fonem & Jeda Otomatis",
-    aiDraftDesc: "Menyusun draf awal anotasi pascarekaman dalam 2–15 detik; guru memegang kendali verifikasi penuh.",
-    highlightMetric: "80–90%",
-    highlightLabel: "Efisiensi waktu telaah guru",
-  },
-  {
-    id: "pos-decoding",
-    tabLabel: "Decoding Kata",
-    moduleTitle: "Gerbang Sandi Batu (Pos 3)",
-    stimulusLabel: "Contoh stimulus kata nyata & kata semu (pseudoword):",
-    syllables: ["ba", "tu", "•", "ro", "da", "•", "la", "to", "•", "ne", "ka"],
-    aiDraftTitle: "Observasi Decoding Fonotaktik Murni",
-    aiDraftDesc: "Mengamati kemampuan pengenalan bunyi suku kata tanpa bergantung pada hafalan visual semata.",
-    highlightMetric: "0.75x",
-    highlightLabel: "Pemutaran ulang audio lambat",
-  },
-  {
-    id: "pos-fonologis",
-    tabLabel: "Susun Huruf Taktil",
-    moduleTitle: "Pohon Kelapa & Jejak Hutan (Pos 1–2)",
-    stimulusLabel: "Contoh ubin huruf interaktif tanpa tekanan angka skor:",
-    syllables: ["K", "E", "L", "A", "P", "A", "•", "H", "U", "T", "A", "N"],
-    aiDraftTitle: "Proteksi Kunci Akses Mode Siswa (PIN 4-Digit)",
-    aiDraftDesc: "Perangkat guru terkunci aman selama sesi berlangsung; maskot Piko otomatis sembunyi saat teks dibaca.",
-    highlightMetric: "100%",
-    highlightLabel: "Privasi rekaman berizin wali",
-  },
-];
-
-const WAVE_BARS = [
-  24, 38, 55, 72, 45, 60, 85, 95, 65, 40, 75, 90, 80, 50, 65, 88, 100, 78, 62, 84, 92, 58, 42, 68, 75, 48, 62, 80,
-  55, 40, 30, 20,
-];
-
 export default function LandingPage() {
-  const [selectedModule, setSelectedModule] = useState<ModulePreview>(MODULE_PREVIEWS[0]);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTimeSec, setCurrentTimeSec] = useState(14);
-  const [speed, setSpeed] = useState<"0.75x" | "1.0x">("1.0x");
-  const [isVerified, setIsVerified] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
   const [scrollProgress, setScrollProgress] = useState(0);
-
-  // Playback simulation
-  useEffect(() => {
-    if (!isPlaying) return;
-    const interval = setInterval(() => {
-      setCurrentTimeSec((prev) => {
-        if (prev >= 32) return 0;
-        return prev + 1;
-      });
-    }, speed === "0.75x" ? 1300 : 1000);
-    return () => clearInterval(interval);
-  }, [isPlaying, speed]);
 
   // Scroll-triggered animations and scroll progress observer
   useEffect(() => {
@@ -102,7 +32,7 @@ export default function LandingPage() {
         setScrollProgress(Math.min(100, Math.max(0, (winScroll / height) * 100)));
       }
 
-      const sections = ["konsol", "alur", "peran", "etika"];
+      const sections = ["alur", "peran", "etika"];
       const scrollPosition = window.scrollY + 140;
       for (const sectionId of [...sections].reverse()) {
         const el = document.getElementById(sectionId);
@@ -123,24 +53,6 @@ export default function LandingPage() {
     };
   }, []);
 
-  function handleSelectModule(mod: ModulePreview) {
-    setSelectedModule(mod);
-    setIsVerified(false);
-    setCurrentTimeSec(14);
-  }
-
-  function togglePlay() {
-    setIsPlaying((prev) => !prev);
-  }
-
-  function toggleSpeed() {
-    setSpeed((prev) => (prev === "1.0x" ? "0.75x" : "1.0x"));
-  }
-
-  function handleVerifyCandidate() {
-    setIsVerified(true);
-  }
-
   function handleSmoothScroll(e: React.MouseEvent<HTMLAnchorElement>, targetId: string) {
     e.preventDefault();
     const target = document.getElementById(targetId);
@@ -155,9 +67,6 @@ export default function LandingPage() {
       window.history.pushState(null, "", `#${targetId}`);
     }
   }
-
-  const activeSyllableIdx = Math.floor((currentTimeSec / 32) * selectedModule.syllables.length);
-  const activeWaveBarIdx = Math.floor((currentTimeSec / 32) * WAVE_BARS.length);
 
   return (
     <div className="lp-page">
@@ -186,15 +95,6 @@ export default function LandingPage() {
 
           <nav aria-label="Navigasi Utama" className="lp-pill-nav">
             <ul className="lp-pill-nav-links">
-              <li>
-                <a
-                  href="#konsol"
-                  className={`lp-pill-nav-link ${activeSection === "konsol" ? "active" : ""}`}
-                  onClick={(e) => handleSmoothScroll(e, "konsol")}
-                >
-                  Konsol Observasi
-                </a>
-              </li>
               <li>
                 <a
                   href="#alur"
@@ -266,212 +166,29 @@ export default function LandingPage() {
                 </a>
               </div>
 
-              {/* Piko Hero Feature Card with real raster image (160x160) */}
-              <div className="lp-piko-hero-card lp-anim-4">
-                <Image
-                  src="/mascot/piko-wave.png"
-                  alt="Piko menyapa"
-                  width={160}
-                  height={160}
-                  className="lp-piko-hero-img lp-piko-animated"
-                />
-                <div className="lp-piko-hero-text">
-                  <strong>Didampingi Piko:</strong> Maskot ramah yang memandu siswa melewati 4 pos membaca tanpa rasa takut atau cemas dinilai.
-                </div>
-              </div>
-
-              <div className="lp-hero-trust lp-anim-5">
+              <div className="lp-hero-trust lp-anim-4">
                 <span>Diverifikasi operator sekolah</span>
                 <span>•</span>
                 <span>Observasi kualitatif non-diagnostik</span>
               </div>
             </div>
 
-            {/* Master Interactive Analytics Console (Fragment data-ui="true") */}
-            <div
-              id="konsol"
-              className="lp-console-stage lp-anim-6 lp-scroll-reveal"
-              data-ui="true"
-              aria-label="Pratinjau Modul Sistem Dyscovery"
-            >
-              <div className="lp-console-head" data-ui="true">
-                <div className="lp-console-tabs" data-ui="true" role="tablist" aria-label="Pilih modul fitur">
-                  {MODULE_PREVIEWS.map((mod) => (
-                    <button
-                      key={mod.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={selectedModule.id === mod.id}
-                      className={`lp-console-tab ${selectedModule.id === mod.id ? "active" : ""}`}
-                      onClick={() => handleSelectModule(mod)}
-                      data-ui="true"
-                    >
-                      {mod.tabLabel}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="lp-console-badge" data-ui="true">
-                  <span className="lp-pulse-indicator" data-ui="true" />
-                  <span>Pratinjau Modul</span>
-                </div>
-              </div>
-
-              {/* Audio Waveform Panel */}
-              <div className="lp-audio-panel lp-anim-7" data-ui="true">
-                <div className="lp-audio-controls" data-ui="true">
-                  <div className="lp-audio-left" data-ui="true">
-                    <button
-                      type="button"
-                      className="lp-play-btn"
-                      onClick={togglePlay}
-                      aria-label={isPlaying ? "Jeda simulasi" : "Putar simulasi"}
-                      data-ui="true"
-                    >
-                      {isPlaying ? (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                          <rect x="6" y="4" width="4" height="16" rx="1" />
-                          <rect x="14" y="4" width="4" height="16" rx="1" />
-                        </svg>
-                      ) : (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: 2 }}>
-                          <path d="M5 3l14 9-14 9V3z" />
-                        </svg>
-                      )}
-                    </button>
-                    <div className="lp-audio-meta" data-ui="true">
-                      <div className="lp-audio-time-row" data-ui="true">
-                        <span>
-                          00:{currentTimeSec < 10 ? `0${currentTimeSec}` : currentTimeSec} / 00:32
-                        </span>
-                        <span>•</span>
-                        <span>{selectedModule.moduleTitle}</span>
-                      </div>
-                      <span className="lp-audio-title" data-ui="true">
-                        {isPlaying ? "Menjalankan simulasi sinkronisasi waveform..." : "Tekan putar untuk simulasi modul"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <Image
-                      src="/mascot/piko-listen.png"
-                      alt="Piko mendengarkan"
-                      width={38}
-                      height={38}
-                      className={isPlaying ? "lp-piko-animated" : ""}
-                    />
-                    <button
-                      type="button"
-                      className="lp-speed-toggle"
-                      onClick={toggleSpeed}
-                      aria-label={`Ubah kecepatan audio. Saat ini ${speed}`}
-                      data-ui="true"
-                    >
-                      Kecepatan {speed}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Animated Waveform Bars */}
-                <div
-                  className="lp-waveform-track"
-                  data-ui="true"
-                  onClick={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                    setCurrentTimeSec(Math.round(ratio * 32));
-                  }}
-                  title="Klik untuk mencari posisi audio"
-                >
-                  {WAVE_BARS.map((height, i) => (
-                    <div
-                      key={i}
-                      className={`lp-wave-bar ${i <= activeWaveBarIdx ? "active" : ""} ${isPlaying ? "playing" : ""}`}
-                      style={{
-                        height: `${height}%`,
-                        animationDelay: isPlaying ? `${(i % 10) * 0.08}s` : undefined,
-                      }}
-                      data-ui="true"
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Synchronized Reading Stimulus Text */}
-              <div className="lp-stimulus-box lp-anim-8" data-ui="true">
-                <span className="lp-stimulus-label" data-ui="true">
-                  {selectedModule.stimulusLabel}
+            {/* Right Column: Clean Piko Mascot Companion Card (No console/module simulation) */}
+            <div className="lp-piko-hero-card lp-anim-5" style={{ maxWidth: "100%", padding: "28px 32px", gap: "24px" }}>
+              <Image
+                src="/mascot/piko-wave.png"
+                alt="Piko menyapa"
+                width={180}
+                height={180}
+                className="lp-piko-hero-img lp-piko-animated"
+              />
+              <div className="lp-piko-hero-text" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <strong style={{ fontSize: "19px", color: "var(--lp-ink-dark)" }}>
+                  Petualangan Membaca Bersama Piko
+                </strong>
+                <span style={{ fontSize: "15px", color: "var(--lp-muted)", lineHeight: 1.55 }}>
+                  Maskot ramah yang memandu siswa melewati 4 pos observasi literasi dalam suasana bercerita yang tenang, menyenangkan, dan bebas dari rasa cemas dinilai.
                 </span>
-                <div className="lp-stimulus-text" data-ui="true">
-                  {selectedModule.syllables.map((syl, idx) => (
-                    <span
-                      key={idx}
-                      className={`lp-syllable ${idx === activeSyllableIdx ? "highlight" : ""}`}
-                      data-ui="true"
-                    >
-                      {syl}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* AI Candidate Callout */}
-              <div className="lp-candidate-card lp-anim-9" data-ui="true">
-                <div className="lp-candidate-info" data-ui="true">
-                  <div className="lp-candidate-title" data-ui="true">
-                    {selectedModule.aiDraftTitle}
-                  </div>
-                  <div className="lp-candidate-desc" data-ui="true">
-                    {selectedModule.aiDraftDesc}
-                  </div>
-                </div>
-
-                <div className="lp-candidate-actions" data-ui="true">
-                  {isVerified ? (
-                    <span className="lp-candidate-btn verified" data-ui="true">
-                      <Image src="/mascot/piko-cheer.png" alt="" width={22} height={22} />
-                      Terverifikasi Guru
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      className="lp-candidate-btn verify"
-                      onClick={handleVerifyCandidate}
-                      data-ui="true"
-                    >
-                      Simulasi Verifikasi
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Metrics Row */}
-              <div className="lp-metrics-row lp-anim-10" data-ui="true">
-                <div className="lp-metric-card" data-ui="true">
-                  <span className="lp-metric-num" data-ui="true">
-                    {selectedModule.highlightMetric}
-                  </span>
-                  <span className="lp-metric-label" data-ui="true">
-                    {selectedModule.highlightLabel}
-                  </span>
-                </div>
-                <div className="lp-metric-card" data-ui="true">
-                  <span className="lp-metric-num" data-ui="true">
-                    4 Pos
-                  </span>
-                  <span className="lp-metric-label" data-ui="true">
-                    Misi petualangan literasi ramah anak
-                  </span>
-                </div>
-                <div className="lp-metric-card" data-ui="true">
-                  <span className="lp-metric-num" data-ui="true">
-                    0 Label
-                  </span>
-                  <span className="lp-metric-label" data-ui="true">
-                    Observasi murni non-klinis
-                  </span>
-                </div>
               </div>
             </div>
           </div>
@@ -762,9 +479,6 @@ export default function LandingPage() {
             </Link>
 
             <ul className="lp-footer-links">
-              <li>
-                <a href="#konsol" onClick={(e) => handleSmoothScroll(e, "konsol")}>Konsol</a>
-              </li>
               <li>
                 <a href="#alur" onClick={(e) => handleSmoothScroll(e, "alur")}>Alur Observasi</a>
               </li>
