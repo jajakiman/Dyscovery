@@ -131,6 +131,39 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 .dash-stat.apricot { background: var(--apricot-soft); }
 .dash-stat.lilac { background: #ece9f6; }
 .dash-stat.green { background: var(--green-bg); }
+/* Teacher dashboard layout (ref: schedule dashboard; real data only, no calendar) */
+.gd-greet { margin: 8px 0 20px; }
+.gd-greet h1 { font-size: 28px; }
+.gd-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+.gd-main { min-width: 0; }
+.gd-hero-body { display: grid; gap: 12px; position: relative; z-index: 1; }
+.gd-hero-name { font-size: 34px; line-height: 1.15; }
+.gd-hero-meta { display: flex; gap: 12px; flex-wrap: wrap; }
+.gd-hero-meta span { display: grid; padding: 8px 14px; border-radius: 12px; background: #ffffff99; font-weight: 700; color: var(--ink); }
+.gd-hero-meta small { font-size: 12px; font-weight: 600; color: var(--muted); }
+.dash-stat .gd-stat-link { position: absolute; inset: 0; padding: 18px 20px; display: grid; align-content: start; gap: 4px; text-decoration: none; }
+.dash-stat:has(.gd-stat-link):hover { filter: brightness(0.97); }
+.gd-section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.gd-section-head h2 { font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.gd-filters { display: flex; gap: 8px; }
+.gd-filters input, .gd-filters select { min-height: 44px; padding: 8px 12px; border: 1px solid #cbd4db; border-radius: var(--radius-control); background: var(--white); }
+.gd-students { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.gd-student { display: flex; align-items: center; gap: 14px; padding: 18px 20px; border-radius: 20px; background: var(--white); box-shadow: var(--shadow-soft); border: 2px solid transparent; }
+.gd-student.is-picked { border-color: var(--ink); }
+.gd-student-info { flex: 1; min-width: 0; display: grid; gap: 2px; justify-items: start; }
+.gd-student-info strong { font-size: 17px; color: var(--ink); }
+.gd-chip { margin-top: 6px; padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; color: var(--ink); background: #f1efeb; }
+.gd-chip.tone-apricot { background: var(--apricot-soft); }
+.gd-chip.tone-lilac { background: #ece9f6; }
+.gd-chip.tone-green { background: var(--green-bg); color: var(--green); }
+.gd-arrow { flex: none; display: grid; place-items: center; width: 44px; height: 44px; min-height: 44px; border-radius: 50%; background: var(--apricot); color: var(--ink); font-size: 20px; font-weight: 800; text-decoration: none; }
+.gd-side { padding: 22px; display: grid; gap: 14px; position: sticky; top: 16px; }
+.gd-side h2 { font-size: 18px; }
+.gd-side-empty { display: grid; justify-items: center; gap: 8px; text-align: center; padding: 12px 0; }
+.gd-review { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.gd-review a { display: grid; padding: 12px 14px; border-radius: 14px; background: var(--green-bg); text-decoration: none; border-left: 4px solid var(--green); }
+.gd-review a:hover { filter: brightness(0.97); }
+.gd-review strong { color: var(--ink); }
 .heading-split { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 
 /* Review Grid (Frame 18 / Layer 5) */
@@ -1113,6 +1146,8 @@ dialog::backdrop { background: #142b4566; backdrop-filter: blur(2px); }
   .guardian-grid { grid-template-columns: 1fr; }
   .guardian-topbar { height: 68px; padding: 0 16px; }
   .dash-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gd-grid, .gd-students { grid-template-columns: 1fr; }
+  .gd-side { position: static; }
   .dash-hero { padding: 24px 20px; }
   .dash-hero-piko { width: 110px; }
   .login { grid-template-columns: 1fr; padding: 12px; }

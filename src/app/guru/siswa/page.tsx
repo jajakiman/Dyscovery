@@ -53,6 +53,11 @@ export default function StudentRoster() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [demo, setDemo] = useState<null | "empty" | "forbidden" | "error">(null);
+  const [teacherName, setTeacherName] = useState("");
+
+  useEffect(() => {
+    void api<{ profile?: { full_name?: string } }>("/api/auth/profile").then((res) => setTeacherName(res.data.profile?.full_name ?? ""));
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoad("loading");
@@ -166,12 +171,21 @@ export default function StudentRoster() {
     { tone: "blue", value: children.length, label: "Siswa ditugaskan", piko: "piko-guide" },
     { tone: "apricot", value: countBy("draft"), label: "Draf sesi siap dimulai", piko: "piko-wave" },
     { tone: "lilac", value: countBy("in_progress"), label: "Sesi sedang berjalan", piko: "piko-listen" },
-    { tone: "green", value: countBy("completed"), label: "Sesi selesai, siap ditinjau", piko: "piko-cheer" },
+    { tone: "green", value: countBy("completed"), label: "Sesi selesai, siap ditinjau", piko: "piko-cheer", href: "/guru/rekaman" },
   ];
+  const nameOf = (childId: string) => children.find((c) => c.id === childId)?.display_name ?? "Siswa";
+  const latest = (childId: string) =>
+    sessions.filter((s) => s.child_id === childId).sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  const toReview = sessions.filter((s) => s.status === "completed");
+  const statusLabel: Record<string, [string, string]> = {
+    draft: ["Draf siap", "apricot"],
+    in_progress: ["Sedang berjalan", "lilac"],
+    completed: ["Siap ditinjau", "green"],
+  };
+  const today = new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   return (
     <div className="shell" data-ui="true">
-      {/* Sidebar matching Frame 16 & Design System */}
       <aside className="sidebar">
         <div>
           <Image className="brand" src="/brand/logo-horizontal.svg" alt="Dyscovery" width={152} height={37} priority />
@@ -193,12 +207,16 @@ export default function StudentRoster() {
         </div>
       </aside>
 
-      {/* Main Workspace (Frame 16: S10) */}
       <main className="workspace">
         <header className="portal-subbar">
-          <span className="subbar-meta">Portal Guru • Kelas 2A / Tahun ajaran 2026–2027</span>
+          <span className="subbar-meta">Portal Guru • Tahun ajaran 2026–2027</span>
           <UserProfileMenu />
         </header>
+
+        <div className="gd-greet">
+          <h1>Halo, {teacherName || "Guru"}</h1>
+          <p className="muted small">{today} • Satu siswa, satu sesi, didampingi guru.</p>
+        </div>
 
         {demo === "error" && (
           <p className="notice warn" role="status" style={{ marginBottom: 20 }}>
@@ -206,185 +224,143 @@ export default function StudentRoster() {
           </p>
         )}
 
-        {/* Notice Info Box (Frame 16 / Node 700) */}
-        <div className="roster-notice-card">
-          <div className="roster-notice-lead">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="16" x2="12" y2="12" />
-              <line x1="12" y1="8" x2="12.01" y2="8" />
-            </svg>
-            <strong>Satu siswa, satu sesi, didampingi guru.</strong>
-          </div>
-          <p className="roster-notice-text">
-            Periksa persetujuan orang tua dan mikrofon, lalu mulai sesi membaca bersama siswa.
-          </p>
-        </div>
+        <div className="gd-grid">
+          <div className="gd-main">
+            {picked && (
+              <section className="dash-hero" aria-labelledby="hero-title">
+                <div className="gd-hero-body">
+                  <span className="dash-hero-tag">Siswa berikutnya</span>
+                  <h2 id="hero-title" className="gd-hero-name">{picked.display_name}</h2>
+                  <div className="gd-hero-meta">
+                    <span><small>Kelas</small>{picked.grade}</span>
+                    <span><small>Status</small>{statusLabel[latest(picked.id)?.status ?? ""]?.[0] ?? "Belum mulai"}</span>
+                  </div>
+                  <div className="setup-consents">
+                    <span className="consent-chip">Izin Membaca Aktif</span>
+                    <span className="consent-chip">Izin Audio Aktif</span>
+                    <span className="consent-chip">Izin AI Aktif</span>
+                  </div>
+                  <div className="setup-controls">
+                    <button type="button" className="btn secondary" onClick={handleTestMic}>
+                      {micTesting ? `Mengecek… (${micLevel}%)` : "Uji Mikrofon"}
+                    </button>
+                    <button type="button" className="btn primary" disabled={busy} onClick={() => void startSession()}>
+                      {busy ? "Memproses…" : "Mulai Sesi Membaca"}
+                    </button>
+                  </div>
+                  {message && <p className="notice warn" role="alert">{message}</p>}
+                </div>
+                <Image className="dash-hero-piko" src="/mascot/piko-wave.svg" alt="" width={200} height={206} priority />
+              </section>
+            )}
 
-        {/* Table Filter & Roster Card */}
-        <section className="card roster-card" aria-labelledby="roster-title">
-          <div className="table-filter-bar">
-            <div className="filter-item search-box">
-              <label className="small muted" htmlFor="q">Cari siswa</label>
-              <input
-                id="q"
-                type="search"
-                placeholder="Cari nama siswa"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-              />
-            </div>
-            <div className="filter-item select-box">
-              <label className="small muted" htmlFor="grade-filter">Kelas</label>
-              <select
-                id="grade-filter"
-                value={gradeFilter}
-                onChange={(e) => setGradeFilter(e.target.value)}
-              >
-                <option value="all">Semua kelas</option>
-                <option value="2A">Kelas 2A</option>
-                <option value="2B">Kelas 2B</option>
-              </select>
-            </div>
-          </div>
+            <ul className="dash-stats">
+              {stats.map((s) => {
+                const body = (
+                  <>
+                    <strong>{s.value}</strong>
+                    <span>{s.label}</span>
+                    <Image src={`/mascot/${s.piko}.svg`} alt="" width={84} height={86} />
+                  </>
+                );
+                return (
+                  <li key={s.label} className={`dash-stat ${s.tone}`}>
+                    {s.href ? <Link href={s.href} className="gd-stat-link">{body}</Link> : body}
+                  </li>
+                );
+              })}
+            </ul>
 
-          {load === "loading" && <p className="empty" role="status">Memuat daftar siswa...</p>}
-          {load === "error" && (
-            <div className="empty" role="alert">
-              <strong>Daftar siswa belum dapat dimuat.</strong>
-              <button type="button" className="btn secondary" onClick={() => void refresh()}>Coba lagi</button>
-            </div>
-          )}
-          {load === "forbidden" && (
-            <div className="empty" role="alert">
-              <strong>Akun Anda belum terverifikasi sebagai guru.</strong>
-              <p>Operator sekolah yang mengaktifkan akses guru dan penugasan kelas.</p>
-            </div>
-          )}
-          {load === "ready" && children.length === 0 && (
-            <div className="empty">
-              <strong>Belum ada siswa yang ditugaskan.</strong>
-              <p>Siswa muncul setelah operator menetapkan penugasan untuk akun Anda.</p>
-            </div>
-          )}
-          {load === "ready" && children.length > 0 && shown.length === 0 && (
-            <p className="empty">Tidak ada siswa dengan kriteria pencarian tersebut.</p>
-          )}
+            <section aria-labelledby="today-title">
+              <div className="gd-section-head">
+                <h2 id="today-title">Siswa hari ini</h2>
+                <div className="gd-filters">
+                  <label className="sr-only" htmlFor="q">Cari siswa</label>
+                  <input id="q" type="search" placeholder="Cari nama siswa" value={query} onChange={(e) => setQuery(e.target.value)} />
+                  <label className="sr-only" htmlFor="grade-filter">Kelas</label>
+                  <select id="grade-filter" value={gradeFilter} onChange={(e) => setGradeFilter(e.target.value)}>
+                    <option value="all">Semua kelas</option>
+                    <option value="2A">Kelas 2A</option>
+                    <option value="2B">Kelas 2B</option>
+                  </select>
+                </div>
+              </div>
 
-          {load === "ready" && shown.length > 0 && (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th scope="col">Nama siswa</th>
-                    <th scope="col">Kelas</th>
-                    <th scope="col">Persetujuan orang tua</th>
-                    <th scope="col">Skrining terakhir</th>
-                    <th scope="col">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
+              {load === "loading" && <p className="empty" role="status">Memuat daftar siswa...</p>}
+              {load === "error" && (
+                <div className="empty" role="alert">
+                  <strong>Daftar siswa belum dapat dimuat.</strong>
+                  <button type="button" className="btn secondary" onClick={() => void refresh()}>Coba lagi</button>
+                </div>
+              )}
+              {load === "ready" && children.length === 0 && (
+                <div className="empty">
+                  <strong>Belum ada siswa yang ditugaskan.</strong>
+                  <p>Siswa muncul setelah operator menetapkan penugasan untuk akun Anda.</p>
+                </div>
+              )}
+              {load === "ready" && children.length > 0 && shown.length === 0 && (
+                <p className="empty">Tidak ada siswa dengan kriteria pencarian tersebut.</p>
+              )}
+
+              {load === "ready" && shown.length > 0 && (
+                <ul className="gd-students">
                   {shown.map((child) => {
-                    const count = drafts(child.id).length;
-                    const childSessions = sessions.filter((s) => s.child_id === child.id);
-                    const activeSession = childSessions[0];
+                    const s = latest(child.id);
+                    const [label, tone] = statusLabel[s?.status ?? ""] ?? ["Belum mulai", "none"];
                     const isPicked = picked?.id === child.id;
-
-                    // Consent status: all registered students have active guardian consent
-                    const isConsentActive = true;
-
                     return (
-                      <tr key={child.id} className={isPicked ? "row-selected" : undefined}>
-                        <td>
-                          <span className="student-cell">
-                            <span className="avatar" aria-hidden="true">{initials(child.display_name)}</span>
-                            <span>{child.display_name}</span>
-                          </span>
-                        </td>
-                        <td>{child.grade}</td>
-                        <td>
-                          {isConsentActive ? (
-                            <span className="badge ready">Persetujuan Aktif</span>
-                          ) : (
-                            <span className="badge none" style={{ background: "#fde9d4", color: "#8a4b12" }}>
-                              Menunggu
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          {childSessions.length > 0 ? "12 Okt 2026" : "Belum ada"}
-                        </td>
-                        <td>
-                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                            {isConsentActive ? (
-                              <button
-                                type="button"
-                                className={`btn ${isPicked ? "primary" : "secondary"}`}
-                                style={{ minHeight: 38, padding: "6px 14px", fontSize: 13 }}
-                                onClick={() => openSelect(child)}
-                              >
-                                {isPicked ? "Siswa dipilih" : "Pilih siswa"}
-                              </button>
-                            ) : (
-                              <span className="small muted">Belum tersedia</span>
-                            )}
-                            {activeSession && (
-                              <Link
-                                href={`/guru/rekaman?session=${activeSession.id}`}
-                                className="btn secondary"
-                                style={{ minHeight: 38, padding: "6px 14px", fontSize: 13 }}
-                              >
-                                Tinjau
-                              </Link>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
+                      <li key={child.id} className={`gd-student${isPicked ? " is-picked" : ""}`}>
+                        <span className="avatar" aria-hidden="true">{initials(child.display_name)}</span>
+                        <div className="gd-student-info">
+                          <strong>{child.display_name}</strong>
+                          <span className="muted small">Kelas {child.grade}</span>
+                          <span className={`gd-chip tone-${tone}`}>{label}</span>
+                        </div>
+                        {s?.status === "completed" ? (
+                          <Link className="gd-arrow" href={`/guru/rekaman?session=${s.id}`} aria-label={`Tinjau rekaman ${child.display_name}`}>→</Link>
+                        ) : (
+                          <button
+                            type="button"
+                            className="gd-arrow"
+                            aria-pressed={isPicked}
+                            aria-label={`Pilih ${child.display_name} untuk sesi berikutnya`}
+                            onClick={() => { openSelect(child); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                          >
+                            →
+                          </button>
+                        )}
+                      </li>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        {/* Selected Student Setup & Preparation Bar (Frame 16 / Node 778-788) */}
-        {picked && (
-          <div className="card setup-action-card">
-            <div className="setup-info">
-              <div className="setup-badge-row">
-                <span className="setup-label">Siswa dipilih:</span>
-                <strong className="setup-name">{picked.display_name}</strong>
-                <span className="setup-grade">Kelas {picked.grade}</span>
-              </div>
-              <div className="setup-consents">
-                <span className="consent-chip active">Izin Membaca Aktif</span>
-                <span className="consent-chip active">Izin Audio Aktif</span>
-                <span className="consent-chip active">Izin AI Aktif</span>
-              </div>
-            </div>
-
-            <div className="setup-controls">
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={handleTestMic}
-                title="Periksa mikrofon perangkat sebelum sesi dimulai"
-              >
-                {micTesting ? `Mengecek… (${micLevel}%)` : "Uji Mikrofon"}
-              </button>
-              <button
-                type="button"
-                className="btn primary"
-                disabled={busy}
-                onClick={() => void startSession()}
-              >
-                {busy ? "Memproses…" : "Mulai Sesi Membaca"}
-              </button>
-            </div>
-            {message && <p className="notice warn" role="alert">{message}</p>}
+                </ul>
+              )}
+            </section>
           </div>
-        )}
+
+          <aside className="gd-side card" aria-labelledby="review-title">
+            <h2 id="review-title">Perlu ditinjau</h2>
+            {toReview.length === 0 ? (
+              <div className="gd-side-empty">
+                <Image src="/mascot/piko-rest.svg" alt="" width={110} height={113} />
+                <p className="muted small">Belum ada sesi yang menunggu telaah.</p>
+              </div>
+            ) : (
+              <ul className="gd-review">
+                {toReview.map((s) => (
+                  <li key={s.id}>
+                    <Link href={`/guru/rekaman?session=${s.id}`}>
+                      <strong>{nameOf(s.child_id)}</strong>
+                      <span className="muted small">
+                        {new Date(s.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} • Rekaman bacaan
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </aside>
+        </div>
       </main>
     </div>
   );
