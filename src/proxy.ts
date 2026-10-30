@@ -4,19 +4,23 @@ import { getSupabaseConfig } from "@/lib/supabase/config";
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
-  const { url, key } = getSupabaseConfig();
-  const supabase = createServerClient(url, key, {
-    cookies: {
-      getAll: () => request.cookies.getAll(),
-      setAll(values, headers) {
-        values.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
-        values.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
-        Object.entries(headers).forEach(([name, value]) => response.headers.set(name, value));
+  try {
+    const { url, key } = getSupabaseConfig();
+    const supabase = createServerClient(url, key, {
+      cookies: {
+        getAll: () => request.cookies.getAll(),
+        setAll(values, headers) {
+          values.forEach(({ name, value }) => request.cookies.set(name, value));
+          response = NextResponse.next({ request });
+          values.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+          Object.entries(headers).forEach(([name, value]) => response.headers.set(name, value));
+        },
       },
-    },
-  });
-  await supabase.auth.getClaims();
+    });
+    await supabase.auth.getClaims();
+  } catch {
+    // Graceful fallback when Supabase keys are not configured in local environment
+  }
   response.headers.set("Cache-Control", "private, no-store");
   return response;
 }

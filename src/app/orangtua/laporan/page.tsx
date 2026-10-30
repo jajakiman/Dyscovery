@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/ui/api";
 import { Modal } from "@/lib/ui/modal";
+import { UserProfileMenu } from "@/lib/ui/user-profile-menu";
 
 type PsychologistCard = {
   id: string;
@@ -13,6 +14,15 @@ type PsychologistCard = {
   str: string;
   clinic: string;
   avatarText: string;
+};
+
+type ActiveShare = {
+  id: string;
+  psychologistName: string;
+  grantedAt: string;
+  expiresAt: string;
+  includeAudio: boolean;
+  status: "active" | "revoked";
 };
 
 const DEFAULT_PSYCHOLOGISTS: PsychologistCard[] = [
@@ -45,9 +55,12 @@ function GuardianReportAndDirectoryContent() {
 
   const [psychologists, setPsychologists] = useState<PsychologistCard[]>(DEFAULT_PSYCHOLOGISTS);
   const [sharingWith, setSharingWith] = useState<PsychologistCard | null>(null);
-  const [sharedIds, setSharedIds] = useState<Set<string>>(new Set());
+  const [activeShares, setActiveShares] = useState<ActiveShare[]>([]);
+  const [selectedDurationDays, setSelectedDurationDays] = useState<number>(7);
+  const [includeAudio, setIncludeAudio] = useState<boolean>(false);
+  const [consentConfirmed, setConsentConfirmed] = useState<boolean>(false);
   const [busy, setBusy] = useState(false);
-  const [shareSuccess, setShareSuccess] = useState(false);
+  const [shareSuccessMessage, setShareSuccessMessage] = useState("");
 
   useEffect(() => {
     // Attempt fetching real psychologists if available
@@ -72,29 +85,56 @@ function GuardianReportAndDirectoryContent() {
     });
   }, []);
 
+  function openShareModal(psy: PsychologistCard) {
+    setSharingWith(psy);
+    setSelectedDurationDays(7);
+    setIncludeAudio(false);
+    setConsentConfirmed(false);
+    setShareSuccessMessage("");
+  }
+
   async function confirmShare() {
     if (!sharingWith) return;
     setBusy(true);
 
-    // Calculate 7-day expiration date
+    // Calculate expiration date
     const expireDate = new Date();
-    expireDate.setDate(expireDate.getDate() + 7);
+    expireDate.setDate(expireDate.getDate() + selectedDurationDays);
 
-    // ponytail: fallback simulated grant share in prototype view; real DB rpc requires verified guardian session.
-    await api(`/api/reports/${reportId}/shares`, {
+    const res = await api<{ share?: { id: string } }>(`/api/reports/${reportId}/shares`, {
       psychologistId: sharingWith.id,
       noticeVersion: "1.0",
       expiresAt: expireDate.toISOString(),
-      includeAudio: false,
+      includeAudio,
     });
 
     setBusy(false);
-    setSharedIds((prev) => new Set([...prev, sharingWith.id]));
-    setShareSuccess(true);
+    const newShareId = res.data?.share?.id ?? `share-${Date.now().toString(36)}`;
+    const newShare: ActiveShare = {
+      id: newShareId,
+      psychologistName: sharingWith.name,
+      grantedAt: new Date().toLocaleDateString("id-ID"),
+      expiresAt: expireDate.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }),
+      includeAudio,
+      status: "active",
+    };
+
+    setActiveShares((prev) => [newShare, ...prev]);
+    setSharingWith(null);
+    setShareSuccessMessage(`Laporan observasi berhasil dibagikan kepada ${sharingWith.name} untuk masa akses ${selectedDurationDays} hari.`);
+  }
+
+  async function revokeShare(shareId: string) {
+    setBusy(true);
+    await api(`/api/reports/${reportId}/shares/${shareId}`, {}, { method: "DELETE" });
+    setActiveShares((prev) =>
+      prev.map((s) => (s.id === shareId ? { ...s, status: "revoked" } : s))
+    );
+    setBusy(false);
   }
 
   return (
-    <div className="guardian-page">
+    <div className="guardian-page" data-ui="true">
       {/* Top Bar matching Frame 20 */}
       <header className="guardian-topbar">
         <div className="topbar-brand">
@@ -104,10 +144,11 @@ function GuardianReportAndDirectoryContent() {
           <span className="brand-divider">/</span>
           <span className="topbar-portal">Portal Orang Tua</span>
         </div>
-        <div className="topbar-links">
-          <Link href="/guru/siswa" className="btn secondary small">
+        <div className="topbar-links" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Link href="/guru/siswa" className="btn secondary" style={{ minHeight: 40, padding: "8px 16px", fontSize: 13 }}>
             Kembali ke Ruang Guru
           </Link>
+          <UserProfileMenu />
         </div>
       </header>
 
@@ -122,6 +163,12 @@ function GuardianReportAndDirectoryContent() {
             <span className="badge-placeholder">Seluruh profil: placeholder</span>
           </div>
         </div>
+
+        {shareSuccessMessage && (
+          <div className="notice ok" role="status" style={{ margin: "0 0 16px" }}>
+            {shareSuccessMessage}
+          </div>
+        )}
 
         <div className="guardian-grid">
           {/* Left: Summary Card (Frame 20 / Node 982) */}
@@ -149,37 +196,36 @@ function GuardianReportAndDirectoryContent() {
               </p>
             </div>
 
-            {/* Disclaimer Highlight Box per Frame 20 / Node 991 */}
+            {/* Non-diagnostic Disclaimer Box (Frame 20 / Node 991) */}
             <div className="summary-disclaimer-box">
-              <h4 className="disclaimer-title">Ini bukan diagnosis disleksia.</h4>
+              <p className="disclaimer-title">Ini bukan diagnosis disleksia.</p>
               <p className="disclaimer-text">
                 Hasil perlu dibahas dengan tenaga profesional.
               </p>
             </div>
           </section>
 
-          {/* Right: Psychologist Directory (Frame 20 / Node 994) */}
-          <section className="directory-column" aria-labelledby="dir-heading">
+          {/* Right: Verified Psychologist Directory (Frame 20 / Node 994) */}
+          <section className="directory-column" aria-labelledby="directory-heading">
             <div className="directory-head">
-              <h2 id="dir-heading">Direktori psikolog</h2>
+              <h2 id="directory-heading">Direktori psikolog</h2>
               <p className="muted small">
-                Tata letak profil terverifikasi. Identitas dan STR belum diisi.
+                Tata letak profil terverifikasi. Identitas dan STR belum tervalidasi klinis.
               </p>
             </div>
 
+            {/* 3-column psychologist cards (Frame 20 / Node 997, 1007, 1017) */}
             <div className="psychologist-card-list">
               {psychologists.map((psy) => {
-                const isShared = sharedIds.has(psy.id);
+                const active = activeShares.find((s) => s.psychologistName === psy.name && s.status === "active");
                 return (
-                  <article key={psy.id} className="card psychologist-card">
+                  <div key={psy.id} className="card psychologist-card">
                     <div className="card-avatar" aria-hidden="true">
-                      <span>{psy.avatarText}</span>
+                      {psy.avatarText}
                     </div>
-
                     <h3 className="psy-name">{psy.name}</h3>
                     <p className="psy-meta">
-                      {psy.str}
-                      <br />
+                      {psy.str}<br />
                       {psy.clinic}
                     </p>
 
@@ -190,80 +236,164 @@ function GuardianReportAndDirectoryContent() {
                     <div className="psy-access-block">
                       <span className="access-label">Masa akses</span>
                       <div className="access-value-box">
-                        <span>7 hari setelah dibagikan</span>
+                        7 hari setelah dibagikan
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      className={`btn ${isShared ? "secondary" : "primary"}`}
-                      style={{ width: "100%", minHeight: 48, marginTop: 12, fontSize: 14 }}
-                      onClick={() => {
-                        setSharingWith(psy);
-                        setShareSuccess(false);
-                      }}
-                    >
-                      {isShared ? "Laporan Telah Dibagikan ✓" : "Bagikan Laporan Observasi"}
-                    </button>
-                  </article>
+                    <div className="psy-action-box" style={{ width: "100%", marginTop: 14 }}>
+                      {active ? (
+                        <div style={{ textAlign: "center" }}>
+                          <span className="badge ready" style={{ width: "100%", padding: "8px 12px", display: "block", marginBottom: 6 }}>
+                            Akses Aktif (s/d {active.expiresAt})
+                          </span>
+                          <button
+                            type="button"
+                            className="btn secondary"
+                            style={{ width: "100%", minHeight: 38, fontSize: 13 }}
+                            disabled={busy}
+                            onClick={() => void revokeShare(active.id)}
+                          >
+                            Cabut Izin Berbagi
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn primary"
+                          style={{ width: "100%", minHeight: 48, fontSize: 14 }}
+                          onClick={() => openShareModal(psy)}
+                        >
+                          Bagikan Laporan Observasi
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 );
               })}
             </div>
-          </section>
-        </div>
 
-        {/* Footnote per Frame 20 / Node 1032 */}
-        <footer className="guardian-disclaimer-footer">
-          <p>
-            Prototipe • Tidak ada kredensial atau verifikasi nyata • Berbagi laporan memerlukan persetujuan orang tua
-          </p>
-        </footer>
-      </main>
-
-      {/* Share Modal Dialog */}
-      <Modal open={Boolean(sharingWith)} onClose={() => setSharingWith(null)} titleId="share-title">
-        {sharingWith && (
-          <div>
-            <h2 id="share-title">Bagikan Laporan Observasi</h2>
-            {shareSuccess ? (
-              <div style={{ padding: "16px 0" }}>
-                <p className="notice ok" style={{ marginBottom: 16 }}>
-                  Laporan observasi berhasil dibagikan kepada {sharingWith.name} selama 7 hari.
-                </p>
-                <div className="modal-actions">
-                  <button type="button" className="btn primary" onClick={() => setSharingWith(null)}>
-                    Selesai
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <p className="muted small" style={{ margin: "8px 0 16px" }}>
-                  Anda akan memberikan izin kepada <strong>{sharingWith.name}</strong> untuk membaca laporan observasi anak Anda selama 7 hari.
-                </p>
-                <div className="modal-section" style={{ marginBottom: 16 }}>
-                  <p style={{ margin: "0 0 6px", fontWeight: 700, fontSize: 14 }}>Ketentuan Berbagi:</p>
-                  <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: "var(--ink)", display: "grid", gap: 4 }}>
-                    <li>Akses berlaku selama 7 hari sejak tanggal persetujuan.</li>
-                    <li>Rekaman suara tidak ikut dibagikan (hanya catatan observasi guru).</li>
-                    <li>Orang tua dapat mencabut akses kapan saja melalui portal orang tua.</li>
-                  </ul>
-                </div>
-                <div className="modal-actions">
-                  <button type="button" className="btn secondary" onClick={() => setSharingWith(null)}>
-                    Batal
-                  </button>
-                  <button
-                    type="button"
-                    className="btn primary"
-                    disabled={busy}
-                    onClick={() => void confirmShare()}
-                  >
-                    {busy ? "Memproses…" : "Setujui & Bagikan (7 Hari)"}
-                  </button>
+            {/* Active Shares Panel */}
+            {activeShares.length > 0 && (
+              <div className="card active-shares-card" style={{ padding: 24, marginTop: 16 }}>
+                <h3 style={{ fontSize: 18, marginBottom: 12 }}>Daftar Izin Berbagi Aktif</h3>
+                <div style={{ display: "grid", gap: 10 }}>
+                  {activeShares.map((s) => (
+                    <div
+                      key={s.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "12px 16px",
+                        background: "#faf8f4",
+                        borderRadius: 12,
+                        border: "1px solid #dee2e4",
+                      }}
+                    >
+                      <div>
+                        <strong>{s.psychologistName}</strong>
+                        <p className="small muted" style={{ margin: "2px 0 0" }}>
+                          Masa akses hingga: {s.expiresAt} • Audio: {s.includeAudio ? "Disertakan" : "Tidak disertakan"}
+                        </p>
+                      </div>
+                      <div>
+                        {s.status === "active" ? (
+                          <button
+                            type="button"
+                            className="btn secondary"
+                            style={{ minHeight: 36, padding: "4px 14px", fontSize: 13 }}
+                            disabled={busy}
+                            onClick={() => void revokeShare(s.id)}
+                          >
+                            Cabut Izin
+                          </button>
+                        ) : (
+                          <span className="badge none">Izin Dicabut</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
+          </section>
+        </div>
+
+        <footer className="guardian-disclaimer-footer">
+          Prototipe • Tidak ada kredensial atau verifikasi nyata • Dyscovery bukan pengganti pemeriksaan profesional
+        </footer>
+      </main>
+
+      {/* Time-bound Report Share Modal */}
+      <Modal open={Boolean(sharingWith)} onClose={() => setSharingWith(null)} titleId="share-modal-title">
+        {sharingWith && (
+          <div className="share-modal-content">
+            <h2 id="share-modal-title" style={{ fontSize: 24, marginBottom: 8 }}>
+              Bagikan Laporan Observasi
+            </h2>
+            <p className="muted" style={{ marginBottom: 16 }}>
+              Anda akan membagikan salinan laporan observasi kepada <strong>{sharingWith.name}</strong> ({sharingWith.clinic}).
+            </p>
+
+            <div className="field">
+              <label htmlFor="duration-select">Pilih masa berlaku akses</label>
+              <select
+                id="duration-select"
+                value={selectedDurationDays}
+                onChange={(e) => setSelectedDurationDays(Number(e.target.value))}
+              >
+                <option value={7}>7 hari (Rekomendasi awal)</option>
+                <option value={14}>14 hari</option>
+                <option value={30}>30 hari</option>
+              </select>
+            </div>
+
+            <div className="check" style={{ marginTop: 12 }}>
+              <input
+                id="chk-audio"
+                type="checkbox"
+                checked={includeAudio}
+                onChange={(e) => setIncludeAudio(e.target.checked)}
+              />
+              <label htmlFor="chk-audio">
+                <strong>Sertakan rekaman suara bacaan</strong>
+                <p className="small muted" style={{ margin: "2px 0 0" }}>
+                  Secara default dinonaktifkan untuk menjaga privasi anak. Centang jika psikolog memerlukan bukti audio.
+                </p>
+              </label>
+            </div>
+
+            <div className="check" style={{ marginTop: 12 }}>
+              <input
+                id="chk-consent"
+                type="checkbox"
+                checked={consentConfirmed}
+                onChange={(e) => setConsentConfirmed(e.target.checked)}
+              />
+              <label htmlFor="chk-consent">
+                <span>
+                  Saya memahami izin ini berbatas waktu dan dapat saya cabut sewaktu-waktu melalui portal ini.
+                </span>
+              </label>
+            </div>
+
+            <div className="modal-actions" style={{ marginTop: 24 }}>
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={() => setSharingWith(null)}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                disabled={!consentConfirmed || busy}
+                onClick={() => void confirmShare()}
+              >
+                {busy ? "Memproses…" : "Konfirmasi & Bagikan Laporan"}
+              </button>
+            </div>
           </div>
         )}
       </Modal>
@@ -273,7 +403,7 @@ function GuardianReportAndDirectoryContent() {
 
 export default function GuardianReportAndDirectory() {
   return (
-    <Suspense fallback={<p className="empty" role="status">Memuat laporan orang tua…</p>}>
+    <Suspense fallback={<p className="empty" role="status">Memuat portal orang tua…</p>}>
       <GuardianReportAndDirectoryContent />
     </Suspense>
   );

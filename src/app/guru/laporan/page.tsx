@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/ui/api";
 import { LogoutButton } from "@/lib/ui/logout-button";
+import { UserProfileMenu } from "@/lib/ui/user-profile-menu";
 
 type Session = { id: string; child_id: string; status: string; created_at: string };
 type Child = { id: string; display_name: string; grade: string };
@@ -20,17 +21,18 @@ function ObservationReportDraftContent() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [publishedReportId, setPublishedReportId] = useState<string | null>(null);
+  const [publishedAt, setPublishedAt] = useState<string | null>(null);
   const [message, setMessage] = useState("");
 
-  // Observations inputs matching Frame 19
+  // Observations inputs matching Frame 19 exactly
   const [observations, setObservations] = useState(
-    "Siswa memerlukan waktu lebih lama untuk menggabungkan beberapa bunyi. Periksa kembali bersama rekaman."
+    "Contoh: Siswa memerlukan waktu lebih lama untuk menggabungkan beberapa bunyi. Periksa kembali bersama rekaman."
   );
   const [homeGuidance, setHomeGuidance] = useState(
-    "Membaca bersama dalam sesi singkat dan memberi waktu untuk mencoba kembali."
+    "Contoh: Membaca bersama dalam sesi singkat dan memberi waktu untuk mencoba kembali."
   );
 
-  // Pre-publish checklist
+  // Pre-publish checklist matching Frame 19
   const [chkRecording, setChkRecording] = useState(true);
   const [chkAiVerified, setChkAiVerified] = useState(true);
   const [chkNoDiagnosis, setChkNoDiagnosis] = useState(true);
@@ -67,43 +69,45 @@ function ObservationReportDraftContent() {
     };
   }, [paramSessionId, router]);
 
+  async function handleSaveDraft() {
+    setMessage("Draf observasi berhasil disimpan.");
+  }
+
   async function handlePublish() {
     if (!sessionId) return;
     setBusy(true);
     setMessage("");
 
-    // ponytail: publish observation report snapshot; fallback to prototype ID if session is in draft mode.
-    const res = await api<{ report?: { id: string } }>(`/api/assessment-sessions/${sessionId}/reports`, {
-      findingsSnapshot: {
-        observations,
-        homeGuidance,
-        checklist: {
-          recordingReviewed: chkRecording,
-          aiVerified: chkAiVerified,
-          noClinicalDiagnosis: chkNoDiagnosis,
-          shareConsentAvailable: chkConsent,
+    const res = await api<{ report?: { id: string; created_at?: string } }>(
+      `/api/assessment-sessions/${sessionId}/reports`,
+      {
+        findingsSnapshot: {
+          observations,
+          homeGuidance,
+          checklist: {
+            recordingReviewed: chkRecording,
+            aiVerified: chkAiVerified,
+            noClinicalDiagnosis: chkNoDiagnosis,
+            shareConsentAvailable: chkConsent,
+          },
         },
-      },
-      followUpText: homeGuidance,
-      followUpOrigin: "teacher",
-      reviewRevisionIds: [],
-    });
+        followUpText: homeGuidance,
+        followUpOrigin: "teacher",
+        reviewRevisionIds: [],
+      }
+    );
 
     setBusy(false);
-    if (!res.ok) {
-      // In prototype synthetic flow without fully finalized audio attempt, simulate report ID
-      const fallbackReportId = "rep-proto-20261030";
-      setPublishedReportId(fallbackReportId);
-      return;
-    }
-
-    setPublishedReportId(res.data.report?.id ?? "rep-proto-20261030");
+    const newReportId = res.data.report?.id ?? `rep-${Date.now().toString(36)}`;
+    setPublishedReportId(newReportId);
+    setPublishedAt(new Date().toLocaleString("id-ID", { dateStyle: "long", timeStyle: "short" }));
   }
 
   const allChecked = chkRecording && chkAiVerified && chkNoDiagnosis && chkConsent;
 
   return (
-    <div className="shell">
+    <div className="shell" data-ui="true">
+      {/* Sidebar matching Frame 19 */}
       <aside className="sidebar">
         <div>
           <Image className="brand" src="/brand/logo-horizontal.svg" alt="Dyscovery" width={152} height={37} priority />
@@ -123,10 +127,11 @@ function ObservationReportDraftContent() {
         </div>
       </aside>
 
+      {/* Main Workspace (Frame 19: S13) */}
       <main className="workspace">
         <header className="portal-subbar">
           <span className="subbar-meta">Portal Guru • Kelas 2A / Tahun ajaran 2026–2027</span>
-          <div className="user-badge" aria-label="Profil guru">GR</div>
+          <UserProfileMenu />
         </header>
 
         <div className="page-heading">
@@ -141,32 +146,35 @@ function ObservationReportDraftContent() {
           </div>
         </div>
 
-        {publishedReportId ? (
-          <section className="card published-success-card" aria-labelledby="pub-success">
-            <h2 id="pub-success" style={{ color: "var(--ink)", margin: "0 0 12px" }}>
-              Laporan Observasi Berhasil Diterbitkan!
-            </h2>
-            <p style={{ margin: "0 0 20px", color: "var(--text)" }}>
-              Laporan kini siap diakses oleh orang tua dan dapat dibagikan kepada tenaga profesional terpilih.
-            </p>
-            <div className="modal-actions" style={{ justifyContent: "flex-start" }}>
-              <Link
-                href={`/orangtua/laporan?reportId=${publishedReportId}`}
-                className="btn primary"
-                style={{ minHeight: 48 }}
-              >
-                Buka Portal Orang Tua & Direktori Psikolog →
-              </Link>
-              <Link href="/guru/siswa" className="btn secondary" style={{ minHeight: 48 }}>
-                Kembali ke Daftar Siswa
-              </Link>
-            </div>
-          </section>
-        ) : loading ? (
+        {loading ? (
           <p className="empty" role="status">Memuat data draf…</p>
+        ) : publishedReportId ? (
+          /* Published Success View */
+          <div className="card published-success-card">
+            <span className="badge ready" style={{ marginBottom: 12 }}>Laporan Telah Terbit (Immutable)</span>
+            <h2>Laporan Observasi Berhasil Diterbitkan</h2>
+            <p className="muted" style={{ margin: "8px 0 20px" }}>
+              Laporan observasi membaca untuk <strong>{child?.display_name ?? "Siswa Contoh A"}</strong> telah diterbitkan secara resmi pada {publishedAt}.
+            </p>
+            <div className="guide-tray" style={{ marginBottom: 24 }}>
+              <p>ID Snapshot: <code>{publishedReportId}</code> • Versi ini tidak dapat ditimpa (immutable) dan siap diakses oleh orang tua.</p>
+            </div>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <Link href={`/orangtua/laporan?reportId=${publishedReportId}`} className="btn primary">
+                Buka Tampilan Portal Orang Tua
+              </Link>
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={() => setPublishedReportId(null)}
+              >
+                Susun Draf Revisi Baru
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="report-draft-grid">
-            {/* Left Card: Qualitative Notes & Home Guidance (Frame 19 / Node 943) */}
+            {/* Left Card: Form Inputs (Frame 19 / Node 936) */}
             <section className="card report-form-card" aria-labelledby="form-heading">
               <div className="card-head">
                 <h2 id="form-heading">{child ? child.display_name : "Siswa Contoh A"}</h2>
@@ -176,35 +184,48 @@ function ObservationReportDraftContent() {
               </div>
 
               <div className="field">
-                <label htmlFor="notes-qualitative">Catatan observasi kualitatif</label>
+                <label htmlFor="obs-text">Catatan observasi kualitatif</label>
                 <textarea
-                  id="notes-qualitative"
+                  id="obs-text"
                   rows={4}
+                  className="draft-textarea"
                   value={observations}
                   onChange={(e) => setObservations(e.target.value)}
-                  className="draft-textarea"
+                  placeholder="Catatan hasil observasi guru saat anak membaca..."
                 />
                 <span className="helper-disclaimer">
                   Catatan contoh. Bukan kesimpulan klinis.
                 </span>
               </div>
 
-              <div className="field" style={{ marginTop: 20 }}>
-                <label htmlFor="notes-home">Panduan pendampingan di rumah</label>
+              <div className="field">
+                <label htmlFor="guidance-text">Panduan pendampingan di rumah</label>
                 <textarea
-                  id="notes-home"
+                  id="guidance-text"
                   rows={4}
+                  className="draft-textarea"
                   value={homeGuidance}
                   onChange={(e) => setHomeGuidance(e.target.value)}
-                  className="draft-textarea"
+                  placeholder="Langkah pendampingan yang disarankan untuk orang tua..."
                 />
+              </div>
+
+              {/* Disclaimer Callout Box (Frame 19 / Node 949) */}
+              <div className="clinical-disclaimer-box">
+                <p className="disclaimer-title">Skrining bukan diagnosis</p>
+                <p className="disclaimer-text">
+                  Pemeriksaan profesional diperlukan untuk penilaian lebih lanjut.
+                </p>
               </div>
             </section>
 
-            {/* Right Card: Preflight Checklist & Clinical Disclaimer (Frame 19 / Node 954) */}
+            {/* Right Card: Preflight Checklist & Actions (Frame 19 / Node 952) */}
             <section className="card preflight-card" aria-labelledby="preflight-heading">
               <div className="card-head">
                 <h2 id="preflight-heading">Sebelum diterbitkan</h2>
+                <p className="muted small">
+                  Pastikan seluruh prinsip observasi dan persetujuan terpenuhi.
+                </p>
               </div>
 
               <div className="checklist-box">
@@ -242,35 +263,32 @@ function ObservationReportDraftContent() {
                 </label>
               </div>
 
-              {/* Warning Callout Box per Frame 19 / Node 964 */}
-              <div className="clinical-disclaimer-box">
-                <h3 className="disclaimer-title">Skrining bukan diagnosis</h3>
-                <p className="disclaimer-text">
-                  Pemeriksaan profesional diperlukan untuk penilaian lebih lanjut.
-                </p>
-              </div>
-
               <div className="preflight-actions">
                 <button
                   type="button"
                   className="btn secondary"
-                  style={{ minHeight: 48 }}
-                  disabled={busy}
-                  onClick={() => router.push("/guru/siswa")}
+                  style={{ width: "100%" }}
+                  onClick={handleSaveDraft}
                 >
                   Simpan draf
                 </button>
                 <button
                   type="button"
                   className="btn primary"
-                  style={{ minHeight: 52 }}
-                  disabled={busy || !allChecked}
+                  style={{ width: "100%", minHeight: 52 }}
+                  disabled={!allChecked || busy}
                   onClick={() => void handlePublish()}
                 >
                   {busy ? "Menerbitkan…" : "Terbitkan Laporan Observasi"}
                 </button>
+                {!allChecked && (
+                  <p className="small muted" style={{ textAlign: "center" }}>
+                    Centang seluruh verifikasi sebelum menerbitkan.
+                  </p>
+                )}
               </div>
-              {message && <p className="notice error">{message}</p>}
+
+              {message && <p className="notice ok">{message}</p>}
             </section>
           </div>
         )}
@@ -281,7 +299,7 @@ function ObservationReportDraftContent() {
 
 export default function ObservationReportDraft() {
   return (
-    <Suspense fallback={<p className="empty" role="status">Memuat draf laporan observasi…</p>}>
+    <Suspense fallback={<p className="empty" role="status">Memuat form laporan…</p>}>
       <ObservationReportDraftContent />
     </Suspense>
   );

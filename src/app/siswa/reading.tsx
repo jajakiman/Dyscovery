@@ -28,7 +28,19 @@ const MIC_TEXT: Record<Exclude<MicIssue, "">, string> = {
   silent: "Suara tidak terdengar di rekaman. Periksa tombol bisu mikrofon, lalu rekam ulang.",
   short: "Rekaman terlalu pendek. Bacalah sampai selesai, lalu rekam ulang.",
 };
-type Stage = "loading" | "unavailable" | "welcome" | "task" | "bridge" | "recording" | "review" | "sending" | "finished" | "error";
+
+type Stage =
+  | "loading"
+  | "unavailable"
+  | "welcome"      // S01: Frame 7
+  | "discovery"    // S02: Frame 8 (Penemuan kelapa)
+  | "task"         // S03: Frame 9 (Susun huruf) / S05: Frame 11 (Membaca nyaring)
+  | "bridge"       // S04: Frame 10 (Transisi 33%) / S06: Frame 12 (Transisi 66%)
+  | "recording"    // S05 recording state
+  | "review"       // S05 review audio state
+  | "sending"      // S05 upload & finalize state
+  | "finished"     // S08: Frame 14 (Petualangan selesai)
+  | "error";
 
 const READ_TYPES = ["word_read", "passage_read"];
 const hex = (buf: ArrayBuffer) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -46,6 +58,31 @@ function Subbar({ percent }: { percent: number }) {
   );
 }
 
+function Stepper({ currentStep }: { currentStep: 1 | 2 | 3 }) {
+  const steps = [
+    { num: 1, label: "Hutan kelapa" },
+    { num: 2, label: "Bukit membaca" },
+    { num: 3, label: "Peta selesai" },
+  ];
+  return (
+    <div className="checkpoint-stepper" aria-label="Alur pos petualangan">
+      {steps.map((st, i) => {
+        const isDone = st.num < currentStep;
+        const isActive = st.num === currentStep;
+        return (
+          <div key={st.num} className="checkpoint-step">
+            {i > 0 && <span className={`checkpoint-line ${isDone || isActive ? "active" : ""}`} aria-hidden="true" />}
+            <span className={`checkpoint-circle ${isDone ? "done" : isActive ? "active" : "inactive"}`} aria-hidden="true">
+              {st.num}
+            </span>
+            <span className={`checkpoint-label ${isDone || isActive ? "active" : ""}`}>{st.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function Tiles({ tiles, image, busy, onDone }: { tiles: string[]; image?: string | null; busy: boolean; onDone: (word: string) => void }) {
   const [slots, setSlots] = useState<(number | null)[]>(() => tiles.map(() => null));
   const used = new Set(slots.filter((s): s is number => s !== null));
@@ -59,9 +96,9 @@ function Tiles({ tiles, image, busy, onDone }: { tiles: string[]; image?: string
 
   return (
     <div className="tiles-interactive">
-      {image && <div className="coconut-preview">
-        <Image src={image} alt="Gambar benda yang dieja" width={106} height={94} priority />
-      </div>}
+      <div className="coconut-preview">
+        <Image src={image || "/assets/kelapa.svg"} alt="Gambar benda yang dieja" width={112} height={100} priority />
+      </div>
 
       <ol className="slots-container" aria-label={`Kotak jawaban 1 sampai ${tiles.length}`}>
         {slots.map((s, i) => (
@@ -96,8 +133,8 @@ function Tiles({ tiles, image, busy, onDone }: { tiles: string[]; image?: string
         ))}
       </ul>
 
-      <div className="tray tile-guide">
-        <span>Sentuh ubin huruf untuk memasukkan ke kotak. Ketuk ubin di kotak untuk membatalkan.</span>
+      <div className="guide-tray tile-guide">
+        <p>Sentuh ubin huruf untuk memasukkan ke kotak. Ketuk ubin di kotak untuk membatalkan.</p>
       </div>
 
       <div className="tile-actions">
@@ -123,43 +160,28 @@ function Tiles({ tiles, image, busy, onDone }: { tiles: string[]; image?: string
   );
 }
 
-function Stepper({ currentStep }: { currentStep: 1 | 2 | 3 }) {
-  const steps = [
-    { num: 1, label: "Hutan kelapa" },
-    { num: 2, label: "Bukit membaca" },
-    { num: 3, label: "Peta selesai" },
-  ];
-  return (
-    <div className="checkpoint-stepper" aria-label="Alur pos petualangan">
-      {steps.map((st, i) => {
-        const isDone = st.num < currentStep;
-        const isActive = st.num === currentStep;
-        return (
-          <div key={st.num} className="checkpoint-step">
-            {i > 0 && <span className={`checkpoint-line ${isDone || isActive ? "active" : ""}`} aria-hidden="true" />}
-            <span className={`checkpoint-circle ${isDone || isActive ? "active" : "inactive"}`} aria-hidden="true">
-              {st.num}
-            </span>
-            <span className={`checkpoint-label ${isDone || isActive ? "active" : ""}`}>{st.label}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function Bridge({ percent, title, text, next }: { percent: number; title: string; text: string; next: () => void }) {
+function Bridge({
+  percent,
+  title,
+  text,
+  next,
+}: {
+  percent: number;
+  title: string;
+  text: string;
+  next: () => void;
+}) {
   const isSecond = percent > 50;
   return (
     <div className="student-stage-box bridge-stage">
-      <Stepper currentStep={isSecond ? 2 : 1} />
+      <Stepper currentStep={isSecond ? 3 : 2} />
       <h1 className="stage-title">{title}</h1>
       <div className="bridge-mascot">
         <Image
           src={isSecond ? "/mascot/piko-cheer.svg" : "/mascot/piko-guide.svg"}
           alt=""
-          width={isSecond ? 280 : 280}
-          height={isSecond ? 298 : 278}
+          width={280}
+          height={290}
           priority
         />
       </div>
@@ -169,6 +191,9 @@ function Bridge({ percent, title, text, next }: { percent: number; title: string
           Lanjutkan
         </button>
       </div>
+      <p className="caption-disclaimer">
+        Kartu transisi • Pose Piko menggunakan aset pengganti yang disetujui
+      </p>
     </div>
   );
 }
@@ -222,9 +247,9 @@ export function Reading({ fallback, onExitTeacher, demo = false }: { fallback: R
   }, [demo]);
 
   const item = data?.items[index];
-  const reading = isRead(item) && stage !== "finished" && stage !== "welcome" && stage !== "bridge";
+  const reading = isRead(item) && stage !== "finished" && stage !== "welcome" && stage !== "discovery" && stage !== "bridge";
 
-  // Calculate percentage matching prototype milestones
+  // Calculate percentage matching prototype milestones (0%, 33%, 66%, 100%)
   const pct = stage === "finished" ? 100 : index < 2 ? 0 : index < 3 ? 33 : 66;
 
   async function start() {
@@ -335,6 +360,11 @@ export function Reading({ fallback, onExitTeacher, demo = false }: { fallback: R
         setMessage(fin.data.error ?? "Rekaman belum terkonfirmasi. Coba lagi.");
         return setStage("review");
       }
+
+      // Automatically dispatch AI candidate analysis in the background
+      void api(`/api/assessment-sessions/${data.sessionId}/ai/dispatch`, {
+        purpose: "ai",
+      });
     }
     return advance();
   }
@@ -387,12 +417,46 @@ export function Reading({ fallback, onExitTeacher, demo = false }: { fallback: R
                   <p>Sentuh layar atau gunakan tetikus untuk berpetualang. Tidak perlu berbicara di awal petualangan.</p>
                 </div>
                 <p className="welcome-helper">Duduk yang nyaman. Tidak perlu terburu-buru.</p>
-                <button type="button" className="btn primary welcome-btn" onClick={() => setStage("task")}>
+                <button type="button" className="btn primary welcome-btn" onClick={() => setStage("discovery")}>
                   Mulai Petualangan!
                 </button>
               </div>
             </div>
           </div>
+          <p className="caption-disclaimer">
+            Mode siswa • Guru mendampingi selama kegiatan • Sentuh tombol untuk mulai
+          </p>
+        </div>
+      )}
+
+      {/* S02 / Frame 8: Story Scene 1 (Penemuan Kelapa) */}
+      {stage === "discovery" && (
+        <div className="student-stage-box stage-forest">
+          <div className="discovery-layout">
+            <div className="discovery-object-wrap">
+              <Image src="/assets/kelapa.svg" alt="Buah kelapa di tanah hutan" width={180} height={160} priority />
+            </div>
+            <div className="discovery-mascot-wrap">
+              <Image src="/mascot/piko-guide.svg" alt="Piko memandu" width={220} height={218} priority />
+            </div>
+            <div className="bridge-dialog-card discovery-dialog">
+              <div>
+                <h2 className="discovery-title">Wah, ada buah kelapa!</h2>
+                <p className="bridge-dialog-text">Bisakah kamu membantu Piko menyusun hurufnya?</p>
+              </div>
+              <button
+                type="button"
+                className="btn primary"
+                style={{ minWidth: 180, minHeight: 52 }}
+                onClick={() => setStage("task")}
+              >
+                Ayo, bantu Piko
+              </button>
+            </div>
+          </div>
+          <p className="caption-disclaimer">
+            Prototipe • Data contoh • Bukan alat diagnosis
+          </p>
         </div>
       )}
 
@@ -415,7 +479,7 @@ export function Reading({ fallback, onExitTeacher, demo = false }: { fallback: R
         )
       )}
 
-      {/* S02/S03/S05: Task Screens */}
+      {/* S03 / S05: Task Screens */}
       {(stage === "task" || stage === "recording" || stage === "review" || stage === "sending") && item && (
         <div className={`student-stage-box ${reading ? "reading-meadow" : "task-meadow"}`}>
           {/* Header area of the task */}
@@ -435,10 +499,13 @@ export function Reading({ fallback, onExitTeacher, demo = false }: { fallback: R
           </div>
 
           {reading ? (
-            /* S05 / Frame 11: Active Reading Card (Piko HIDDEN) */
+            /* S05 / Frame 11: Active Reading Card (Piko STRICTLY HIDDEN) */
             <div className="reading-stage-wrap">
               <section className="reading-passage-card" aria-label="Teks bacaan anak">
-                <p className="passage-category-tag">Pos {index + 1} dari {data.items.length}</p>
+                <div className="passage-title-row">
+                  <h2 className="passage-title">Pagi di kebun</h2>
+                  <span className="passage-category-tag">Pos {index + 1} dari {data.items.length}</span>
+                </div>
                 <div className="reading-text-body">
                   <p className="reading">{item.prompt}</p>
                 </div>
@@ -460,7 +527,7 @@ export function Reading({ fallback, onExitTeacher, demo = false }: { fallback: R
                     {stage === "recording" && quiet
                       ? "Suara belum terdengar. Bacalah lebih dekat ke mikrofon."
                       : stage === "recording" && level >= SILENCE_RMS
-                      ? "Suara terdengar jelas ✓"
+                      ? "Suara terdengar jelas"
                       : stage === "recording"
                       ? "Mikrofon aktif: merekam suara bacaan"
                       : stage === "review"
@@ -521,9 +588,12 @@ export function Reading({ fallback, onExitTeacher, demo = false }: { fallback: R
                   )}
                 </div>
               </div>
+              <p className="caption-disclaimer">
+                Stimulus contoh, belum divalidasi secara klinis • Piko sengaja tidak ditampilkan saat membaca aktif
+              </p>
             </div>
           ) : (
-            /* S02 / S03: Task with Mascot Piko Guide & Tactile Tiles */
+            /* S03: Frame 9 Task with Mascot Piko Guide & Tactile Tiles */
             <div className="task-stage-layout">
               <div className="task-mascot-side">
                 <Image src="/mascot/piko-guide.svg" alt="Piko memandu" width={240} height={238} priority />
@@ -617,7 +687,7 @@ export function Reading({ fallback, onExitTeacher, demo = false }: { fallback: R
         </div>
       )}
 
-      {/* Frame 14: Petualangan Selesai */}
+      {/* S08 / Frame 14: Petualangan Selesai */}
       {stage === "finished" && (
         <div className="student-stage-box stage-forest">
           <div className="stage-split">

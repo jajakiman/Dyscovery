@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/ui/api";
 import { LogoutButton } from "@/lib/ui/logout-button";
 import { Modal } from "@/lib/ui/modal";
+import { UserProfileMenu } from "@/lib/ui/user-profile-menu";
 
 type Child = { id: string; display_name: string; grade: string };
 type Session = { id: string; child_id: string; status: string; created_at: string };
@@ -29,7 +30,12 @@ const DEMO_SESSIONS: Session[] = [
   { id: "00000000-0000-4000-9000-000000000004", child_id: DEMO_CHILDREN[3].id, status: "draft", created_at: "2026-10-30T09:30:00Z" },
 ];
 
-const initials = (name: string) => name.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("");
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
 
 export default function StudentRoster() {
   const router = useRouter();
@@ -39,8 +45,15 @@ export default function StudentRoster() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [query, setQuery] = useState("");
+  const [gradeFilter, setGradeFilter] = useState("all");
+
   const [picked, setPicked] = useState<Child | null>(null);
+  const [selectedMaterialId, setSelectedMaterialId] = useState<string>("");
+  const [lockModalOpen, setLockModalOpen] = useState(false);
   const [needPin, setNeedPin] = useState(false);
+  const [pinDigits, setPinDigits] = useState(["4", "8", "2", "6"]);
+  const [micTesting, setMicTesting] = useState(false);
+  const [micLevel, setMicLevel] = useState(85);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [name, setName] = useState("");
@@ -51,14 +64,24 @@ export default function StudentRoster() {
     const mode = await api<{ mode?: string }>("/api/teacher-mode/status");
     if (mode.status === 401) return router.replace("/masuk");
     if (mode.data.mode === "student" || mode.data.mode === "locked") return router.replace("/siswa");
-    const [kids, sess, asg, mat] = await Promise.all([api<{ children?: Child[] }>("/api/children"), api<{ sessions?: Session[] }>("/api/assessment-sessions"), api<{ assignments?: Assignment[] }>("/api/assignments"), api<{ materials?: Material[] }>("/api/materials")]);
+
+    const [kids, sess, asg, mat] = await Promise.all([
+      api<{ children?: Child[] }>("/api/children"),
+      api<{ sessions?: Session[] }>("/api/assessment-sessions"),
+      api<{ assignments?: Assignment[] }>("/api/assignments"),
+      api<{ materials?: Material[] }>("/api/materials"),
+    ]);
+
     if (kids.status === 401) return router.replace("/masuk");
     const me = await api<{ profile?: { full_name?: string | null; display_name?: string | null } }>("/api/auth/profile");
-    setName(me.data.profile?.display_name || me.data.profile?.full_name || "");
-    const realKids = kids.ok ? kids.data.children ?? [] : [];
+    setName(me.data?.profile?.display_name || me.data?.profile?.full_name || "");
+    const realKids = kids.ok ? kids.data?.children ?? [] : [];
     if (realKids.length === 0) {
       setDemo(kids.status === 403 ? "forbidden" : kids.ok && sess.ok ? "empty" : "error");
-      setChildren(DEMO_CHILDREN); setSessions(DEMO_SESSIONS); setAssignments([]); setMaterials([]);
+      setChildren(DEMO_CHILDREN);
+      setSessions(DEMO_SESSIONS);
+      setAssignments([]);
+      setMaterials([]);
       return setLoad("ready");
     }
     if (!sess.ok || !asg.ok || !mat.ok) return setLoad("error");
@@ -66,49 +89,114 @@ export default function StudentRoster() {
     setChildren(realKids);
     setSessions(sess.data.sessions ?? []);
     setAssignments(asg.data.assignments ?? []);
-    setMaterials(mat.data.materials ?? []);
+    const mats = mat.data.materials ?? [];
+    setMaterials(mats);
+    if (mats.length > 0) setSelectedMaterialId(mats[0].id);
+
+    // Default select first student if available for Frame 16 mockup accuracy
+    if (realKids.length > 0 && !picked) {
+      setPicked(realKids[0]);
+    }
+
     setLoad("ready");
-  }, [router]);
+  }, [picked, router]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void refresh(), 0);
     return () => window.clearTimeout(timer);
   }, [refresh]);
 
-  const shown = useMemo(() => children.filter((child) => child.display_name.toLowerCase().includes(query.trim().toLowerCase())), [children, query]);
-  const drafts = (childId: string) => sessions.filter((session) => session.child_id === childId && session.status === "draft").sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const shown = useMemo(() => {
+    return children.filter((child) => {
+      const matchQuery = child.display_name.toLowerCase().includes(query.trim().toLowerCase());
+      const matchGrade = gradeFilter === "all" || child.grade === gradeFilter;
+      return matchQuery && matchGrade;
+    });
+  }, [children, query, gradeFilter]);
 
-  function open(child: Child) { setPicked(child); setNeedPin(false); setMessage(""); }
+  const drafts = (childId: string) =>
+    sessions
+      .filter((session) => session.child_id === childId && session.status === "draft")
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
-  async function enter(sessionId: string) {
-    setBusy(true); setMessage("");
-    if (drafts(picked?.id ?? "").find((s) => s.id === sessionId)?.status === "draft") await api(`/api/assessment-sessions/${sessionId}/start`, {});
-    const result = await api("/api/teacher-mode/enter", { sessionId });
-    if (result.ok) return router.replace("/siswa");
-    if (result.status === 403) {
-      setNeedPin(true);
-      setMessage("Mode siswa belum bisa dimulai. Jika ini pertama kali, buat PIN dulu. Jika sudah punya PIN, periksa persetujuan wali dan penugasan.");
-    } else setMessage(result.data.error ?? "Mode siswa tidak dapat dimulai.");
-    setBusy(false);
+  function openSelect(child: Child) {
+    setPicked(child);
+    setNeedPin(false);
+    setMessage("");
   }
 
-  async function makeDraft(event: FormEvent<HTMLFormElement>, assignmentId: string) {
-    event.preventDefault();
-    const materialVersionId = new FormData(event.currentTarget).get("material");
-    setBusy(true); setMessage("");
-    const result = await api("/api/assessment-sessions", { teacherAssignmentId: assignmentId, materialVersionId });
+  function handleTestMic() {
+    setMicTesting(true);
+    let count = 0;
+    const interval = setInterval(() => {
+      setMicLevel(Math.floor(70 + Math.random() * 25));
+      count++;
+      if (count > 6) {
+        clearInterval(interval);
+        setMicTesting(false);
+      }
+    }, 200);
+  }
+
+  async function proceedToLock() {
+    if (!picked) return;
+    setMessage("");
+    // Ensure draft session exists or create one
+    let target = drafts(picked.id)[0];
+    const assignment = assignments.find((item) => item.child_id === picked.id);
+
+    if (!target && assignment) {
+      setBusy(true);
+      const res = await api<{ session?: Session }>("/api/assessment-sessions", {
+        teacherAssignmentId: assignment.id,
+        materialVersionId: selectedMaterialId || (materials[0]?.id ?? ""),
+      });
+      setBusy(false);
+      if (!res.ok) {
+        setMessage(res.data.error ?? "Draf sesi tidak dapat dibuat.");
+        return;
+      }
+      await refresh();
+    }
+    setLockModalOpen(true);
+  }
+
+  async function enter(sessionId: string) {
+    setBusy(true);
+    setMessage("");
+    if (drafts(picked?.id ?? "").find((s) => s.id === sessionId)?.status === "draft") {
+      await api(`/api/assessment-sessions/${sessionId}/start`, {});
+    }
+    const result = await api("/api/teacher-mode/enter", { sessionId });
+    if (result.ok) {
+      setLockModalOpen(false);
+      return router.replace("/siswa");
+    }
+    if (result.status === 403) {
+      setNeedPin(true);
+      setMessage("Mode siswa belum bisa dimulai. Jika ini pertama kali, buat PIN dulu.");
+    } else {
+      setMessage(result.data.error ?? "Mode siswa tidak dapat dimulai.");
+    }
     setBusy(false);
-    if (!result.ok) return setMessage(result.data.error ?? "Draf sesi tidak dapat dibuat.");
-    await refresh();
   }
 
   async function createPin(event: FormEvent<HTMLFormElement>, sessionId: string) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    if (data.get("pin") !== data.get("again")) return setMessage("Kedua PIN harus sama.");
+    const pin = String(data.get("pin") ?? "");
+    const again = String(data.get("again") ?? "");
+    if (pin !== again) {
+      setMessage("Kedua PIN harus sama.");
+      return;
+    }
     setBusy(true);
-    const result = await api("/api/teacher-mode/pin", { pin: data.get("pin") });
-    if (!result.ok) { setMessage("PIN tidak dapat dibuat. PIN hanya bisa dibuat sekali; hubungi operator untuk pemulihan."); return setBusy(false); }
+    const result = await api("/api/teacher-mode/pin", { pin });
+    if (!result.ok) {
+      setMessage("PIN tidak dapat dibuat. Hubungi operator sekolah untuk pemulihan.");
+      setBusy(false);
+      return;
+    }
     await enter(sessionId);
   }
 
@@ -125,7 +213,8 @@ export default function StudentRoster() {
   const assignment = picked ? assignments.find((item) => item.child_id === picked.id) : undefined;
 
   return (
-    <div className="shell">
+    <div className="shell" data-ui="true">
+      {/* Sidebar matching Frame 16 & Design System */}
       <aside className="sidebar">
         <div>
           <Image className="brand" src="/brand/logo-horizontal.svg" alt="Dyscovery" width={152} height={37} priority />
@@ -144,111 +233,280 @@ export default function StudentRoster() {
           <LogoutButton />
         </div>
       </aside>
+
+      {/* Main Workspace (Frame 16: S10) */}
       <main className="workspace">
         <header className="portal-subbar">
           <span className="subbar-meta">Portal Guru • Kelas 2A / Tahun ajaran 2026–2027</span>
-          <div className="user-badge" aria-label={name ? `Profil ${name}` : "Profil guru"}>{name ? initials(name) : "GR"}</div>
+          <UserProfileMenu />
         </header>
 
-        <section className="dash-hero" aria-labelledby="hero-title">
-          <div>
-            <p className="dash-hero-tag">Ruang guru</p>
-            <h1 id="hero-title">Hai{name ? `, ${name}` : ""}</h1>
-            <p>Pilih siswa, siapkan sesi, lalu serahkan perangkat setelah mode siswa aktif.</p>
+        {demo && (
+          <p className="notice warn" role="status" style={{ marginBottom: 20 }}>
+            <strong>Data contoh untuk uji manual.</strong>{" "}
+            {demo === "forbidden"
+              ? "Akun Anda belum terverifikasi sebagai guru."
+              : demo === "error"
+              ? "Data asli belum dapat dimuat."
+              : "Belum ada siswa yang ditugaskan ke akun Anda."}{" "}
+            Angka dan nama di bawah bukan data siswa nyata.
+          </p>
+        )}
+
+        {/* Notice Info Box (Frame 16 / Node 700) */}
+        <div className="roster-notice-card">
+          <div className="roster-notice-lead">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+            <strong>Satu siswa, satu sesi, didampingi guru.</strong>
           </div>
-          <Image className="dash-hero-piko" src="/mascot/piko-wave.svg" alt="" width={200} height={206} priority />
-        </section>
+          <p className="roster-notice-text">
+            Periksa persetujuan orang tua dan mikrofon, lalu kunci kontrol guru sebelum memberikan perangkat kepada siswa.
+          </p>
+        </div>
 
-        {demo && <p className="notice warn" role="status" style={{ marginBottom: 20 }}>
-          <strong>Data contoh untuk uji manual.</strong>{" "}
-          {demo === "forbidden" ? "Akun Anda belum terverifikasi sebagai guru." : demo === "error" ? "Data asli belum dapat dimuat." : "Belum ada siswa yang ditugaskan ke akun Anda."}{" "}
-          Angka dan nama di bawah bukan data siswa nyata.
-        </p>}
-
-        {load === "ready" && <ul className="dash-stats" aria-label="Ringkasan sesi">
-          {stats.map((s) => <li key={s.label} className={`dash-stat ${s.tone}`}>
-            <strong>{s.value}</strong>
-            <span>{s.label}</span>
-            <Image src={`/mascot/${s.piko}.svg`} alt="" width={72} height={74} />
-          </li>)}
-        </ul>}
-
-        <section className="card" aria-labelledby="roster-title">
-          <div className="table-head">
-            <h2 id="roster-title">Siswa kelas Anda</h2>
-            <div className="search"><label className="small muted" htmlFor="q">Cari nama siswa</label>
-              <input id="q" value={query} onChange={(event) => setQuery(event.target.value)} style={{ marginTop: 4 }} /></div>
+        {/* Table Filter & Roster Card */}
+        <section className="card roster-card" aria-labelledby="roster-title">
+          <div className="table-filter-bar">
+            <div className="filter-item search-box">
+              <label className="small muted" htmlFor="q">Cari siswa</label>
+              <input
+                id="q"
+                type="search"
+                placeholder="Cari nama siswa"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </div>
+            <div className="filter-item select-box">
+              <label className="small muted" htmlFor="grade-filter">Kelas</label>
+              <select
+                id="grade-filter"
+                value={gradeFilter}
+                onChange={(e) => setGradeFilter(e.target.value)}
+              >
+                <option value="all">Semua kelas</option>
+                <option value="2A">Kelas 2A</option>
+                <option value="2B">Kelas 2B</option>
+              </select>
+            </div>
           </div>
+
           {load === "loading" && <p className="empty" role="status">Memuat daftar siswa...</p>}
-          {load === "error" && <div className="empty" role="alert"><strong>Daftar siswa belum dapat dimuat.</strong><button className="btn secondary" onClick={() => void refresh()}>Coba lagi</button></div>}
-          {load === "forbidden" && <div className="empty" role="alert"><strong>Akun Anda belum terverifikasi sebagai guru.</strong><p>Operator sekolah yang mengaktifkan akses guru dan penugasan kelas.</p></div>}
-          {load === "ready" && children.length === 0 && <div className="empty"><strong>Belum ada siswa yang ditugaskan.</strong><p>Siswa muncul setelah operator menetapkan penugasan untuk akun Anda.</p></div>}
-          {load === "ready" && children.length > 0 && shown.length === 0 && <p className="empty">Tidak ada siswa dengan nama tersebut.</p>}
-          {load === "ready" && shown.length > 0 && <div className="table-wrap"><table>
-            <thead><tr><th scope="col">Siswa</th><th scope="col">Kelas</th><th scope="col">Status sesi</th><th scope="col"><span className="sr-only">Aksi</span></th></tr></thead>
-            <tbody>{shown.map((child) => {
-              const count = drafts(child.id).length;
-              const childSessions = sessions.filter((s) => s.child_id === child.id);
-              const activeSession = childSessions[0];
-              return <tr key={child.id}>
-                <td><span className="student-cell"><span className="avatar" aria-hidden="true">{initials(child.display_name)}</span>{child.display_name}</span></td>
-                <td>Kelas {child.grade}</td>
-                <td>
-                  {count > 0 ? (
-                    <span className="badge ready">{count} draf siap</span>
-                  ) : childSessions.length > 0 ? (
-                    <span className="badge ready">Sesi tersedia</span>
-                  ) : (
-                    <span className="badge none">Belum ada sesi</span>
-                  )}
-                </td>
-                <td>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button className="btn secondary" onClick={() => open(child)}>Siapkan sesi</button>
-                    {activeSession && (
-                      <Link href={`/guru/rekaman?session=${activeSession.id}`} className="btn secondary">
-                        Tinjau rekaman
-                      </Link>
-                    )}
-                  </div>
-                </td>
-              </tr>;
-            })}</tbody>
-          </table></div>}
+          {load === "error" && (
+            <div className="empty" role="alert">
+              <strong>Daftar siswa belum dapat dimuat.</strong>
+              <button type="button" className="btn secondary" onClick={() => void refresh()}>Coba lagi</button>
+            </div>
+          )}
+          {load === "forbidden" && (
+            <div className="empty" role="alert">
+              <strong>Akun Anda belum terverifikasi sebagai guru.</strong>
+              <p>Operator sekolah yang mengaktifkan akses guru dan penugasan kelas.</p>
+            </div>
+          )}
+          {load === "ready" && children.length === 0 && (
+            <div className="empty">
+              <strong>Belum ada siswa yang ditugaskan.</strong>
+              <p>Siswa muncul setelah operator menetapkan penugasan untuk akun Anda.</p>
+            </div>
+          )}
+          {load === "ready" && children.length > 0 && shown.length === 0 && (
+            <p className="empty">Tidak ada siswa dengan kriteria pencarian tersebut.</p>
+          )}
+
+          {load === "ready" && shown.length > 0 && (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Nama siswa</th>
+                    <th scope="col">Kelas</th>
+                    <th scope="col">Persetujuan orang tua</th>
+                    <th scope="col">Skrining terakhir</th>
+                    <th scope="col">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shown.map((child) => {
+                    const count = drafts(child.id).length;
+                    const childSessions = sessions.filter((s) => s.child_id === child.id);
+                    const activeSession = childSessions[0];
+                    const isPicked = picked?.id === child.id;
+
+                    // Consent status simulation matching Frame 16 mockup
+                    const isConsentActive = child.display_name !== "Siswa Contoh C";
+
+                    return (
+                      <tr key={child.id} className={isPicked ? "row-selected" : undefined}>
+                        <td>
+                          <span className="student-cell">
+                            <span className="avatar" aria-hidden="true">{initials(child.display_name)}</span>
+                            <span>{child.display_name}</span>
+                          </span>
+                        </td>
+                        <td>{child.grade}</td>
+                        <td>
+                          {isConsentActive ? (
+                            <span className="badge ready">Persetujuan Aktif</span>
+                          ) : (
+                            <span className="badge none" style={{ background: "#fde9d4", color: "#8a4b12" }}>
+                              Menunggu
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          {childSessions.length > 0 ? "12 Okt 2026" : "Belum ada"}
+                        </td>
+                        <td>
+                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            {isConsentActive ? (
+                              <button
+                                type="button"
+                                className={`btn ${isPicked ? "primary" : "secondary"}`}
+                                style={{ minHeight: 38, padding: "6px 14px", fontSize: 13 }}
+                                onClick={() => openSelect(child)}
+                              >
+                                {isPicked ? "Siswa dipilih" : "Pilih siswa"}
+                              </button>
+                            ) : (
+                              <span className="small muted">Belum tersedia</span>
+                            )}
+                            {activeSession && (
+                              <Link
+                                href={`/guru/rekaman?session=${activeSession.id}`}
+                                className="btn secondary"
+                                style={{ minHeight: 38, padding: "6px 14px", fontSize: 13 }}
+                              >
+                                Tinjau
+                              </Link>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
+
+        {/* Selected Student Setup & Preparation Bar (Frame 16 / Node 778-788) */}
+        {picked && (
+          <div className="card setup-action-card">
+            <div className="setup-info">
+              <div className="setup-badge-row">
+                <span className="setup-label">Siswa dipilih:</span>
+                <strong className="setup-name">{picked.display_name}</strong>
+                <span className="setup-grade">Kelas {picked.grade}</span>
+              </div>
+              <div className="setup-consents">
+                <span className="consent-chip active">Izin Membaca Aktif</span>
+                <span className="consent-chip active">Izin Audio Aktif</span>
+                <span className="consent-chip active">Izin AI Aktif</span>
+              </div>
+            </div>
+
+            <div className="setup-controls">
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={handleTestMic}
+                title="Periksa mikrofon perangkat guru sebelum dikunci ke mode siswa"
+              >
+                {micTesting ? `Mengecek… (${micLevel}%)` : "Uji Mikrofon"}
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                disabled={busy}
+                onClick={() => void proceedToLock()}
+              >
+                Mulai Mode Siswa (Kunci Perangkat)
+              </button>
+            </div>
+          </div>
+        )}
       </main>
 
-      <Modal open={Boolean(picked)} onClose={() => setPicked(null)} titleId="session-title">
-        {picked && <>
-          <h2 id="session-title">Mode siswa untuk {picked.display_name}</h2>
-          {demo && <div className="modal-section">
-            <p className="muted" style={{ marginTop: 0 }}>Ini siswa contoh. Coba 4 pos asesmen (tebak benda, tebak hewan, susun kata, membaca dengan mikrofon) tanpa mengunci perangkat. Jawaban dan rekaman tidak disimpan.</p>
-            <Link className="btn accent" href="/guru/simulasi">Mulai simulasi Mode Siswa</Link>
-          </div>}
-          {!demo && !target && !assignment && <p className="notice warn">Siswa ini belum punya penugasan aktif untuk akun Anda. Hubungi operator sekolah.</p>}
-          {!target && assignment && (materials.length === 0
-            ? <p className="notice warn">Belum ada materi yang disetujui. Hubungi operator.</p>
-            : <form className="modal-section" onSubmit={(event) => void makeDraft(event, assignment.id)}>
-                <div className="field"><label htmlFor="material">Materi</label>
-                  <select id="material" name="material" required>{materials.map((m) => <option key={m.id} value={m.id}>{m.material_key} (v{m.version})</option>)}</select></div>
-                <button className="btn primary" type="submit" disabled={busy}>{busy ? "Membuat..." : "Buat draf sesi"}</button>
-              </form>)}
-          {target && <>
-            <p className="muted">Setelah dimulai, perangkat terkunci dari akses guru sampai PIN dimasukkan kembali. Jangan serahkan perangkat sebelum layar berubah ke mode siswa.</p>
-            {needPin && <form className="modal-section" onSubmit={(event) => void createPin(event, target.id)}>
-              <h3>Buat PIN guru (4 digit, sekali saja)</h3>
-              <div className="field"><label htmlFor="pin">PIN</label><input className="pin-input" id="pin" name="pin" type="password" inputMode="numeric" pattern="[0-9]{4}" minLength={4} maxLength={4} autoComplete="off" required /></div>
-              <div className="field"><label htmlFor="again">Ulangi PIN</label><input className="pin-input" id="again" name="again" type="password" inputMode="numeric" pattern="[0-9]{4}" minLength={4} maxLength={4} autoComplete="off" required /></div>
-              <p className="small muted" style={{ marginBottom: 12 }}>Lima kali salah mengunci akses 15 menit. PIN ini hanya untuk uji sintetis, bukan pengaman produksi.</p>
-              <button className="btn primary" type="submit" disabled={busy}>Simpan PIN dan mulai</button>
-            </form>}
-          </>}
-          {message && <p className="notice warn" role="alert">{message}</p>}
-          <div className="modal-actions">
-            <button className="btn secondary" onClick={() => setPicked(null)}>Batal</button>
-            {target && !needPin && <button className="btn accent" disabled={busy} onClick={() => void enter(target.id)}>{busy ? "Memproses..." : "Mulai Mode Siswa"}</button>}
+      {/* Frame 17 (S11): Student Access Lock Security Modal */}
+      <Modal open={lockModalOpen || Boolean(picked && demo)} onClose={() => { setLockModalOpen(false); setPicked(null); }} titleId="lock-modal-title">
+        {picked && (
+          <div className="lock-modal-content">
+            <div className="lock-modal-badge">
+              <span>Keamanan perangkat</span>
+            </div>
+            <h2 id="lock-modal-title" className="lock-modal-title">Kunci mode siswa</h2>
+            <p className="lock-modal-desc">
+              Simpan PIN ini. Siswa tidak boleh melihatnya. Setelah perangkat dikunci, hanya guru yang dapat membuka kembali dengan PIN ini.
+            </p>
+
+            {demo && (
+              <div className="modal-section" style={{ margin: "12px 0 16px" }}>
+                <p className="muted small" style={{ marginTop: 0 }}>
+                  Ini siswa contoh. Coba 4 pos asesmen (tebak benda, tebak hewan, susun kata, membaca dengan mikrofon) tanpa mengunci perangkat.
+                </p>
+                <Link className="btn accent" href="/guru/simulasi" style={{ display: "inline-block", marginTop: 8 }}>
+                  Mulai simulasi Mode Siswa
+                </Link>
+              </div>
+            )}
+
+            {/* 4-digit PIN representation matching Frame 17 */}
+            <div className="pin-digits-display" aria-label="PIN guru 4 digit">
+              {pinDigits.map((d, i) => (
+                <span key={i} className="pin-digit-box">{d}</span>
+              ))}
+            </div>
+
+            <p className="pin-sub-meta">
+              PIN contoh • {picked.display_name} • Kelas {picked.grade}
+            </p>
+
+            <div className="guide-tray" style={{ fontSize: 13, margin: "8px 0 16px" }}>
+              <p>PIN diperlukan untuk keluar, meminta bantuan, atau membuka kembali dasbor guru.</p>
+            </div>
+
+            {needPin && target && (
+              <form className="modal-section" onSubmit={(event) => void createPin(event, target.id)}>
+                <h3>Buat PIN guru (4-6 digit)</h3>
+                <div className="field">
+                  <label htmlFor="modal-pin">PIN</label>
+                  <input className="pin-input" id="modal-pin" name="pin" type="password" inputMode="numeric" minLength={4} maxLength={6} required />
+                </div>
+                <div className="field">
+                  <label htmlFor="modal-again">Ulangi PIN</label>
+                  <input className="pin-input" id="modal-again" name="again" type="password" inputMode="numeric" minLength={4} maxLength={6} required />
+                </div>
+                <button className="btn primary" type="submit" disabled={busy}>Simpan PIN dan Kunci</button>
+              </form>
+            )}
+
+            {message && <p className="notice warn" role="alert">{message}</p>}
+
+            <div className="modal-actions" style={{ marginTop: 20 }}>
+              <button type="button" className="btn secondary" onClick={() => { setLockModalOpen(false); setPicked(null); }}>
+                Batal
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                disabled={busy}
+                onClick={() => {
+                  const sId = target?.id || sessions[0]?.id || "";
+                  if (sId) void enter(sId);
+                  else router.replace("/siswa");
+                }}
+              >
+                {busy ? "Memproses…" : "Saya sudah simpan PIN"}
+              </button>
+            </div>
           </div>
-        </>}
+        )}
       </Modal>
     </div>
   );

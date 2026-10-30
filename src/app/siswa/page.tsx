@@ -48,7 +48,7 @@ export default function StudentMode() {
   }
 
   return (
-    <div className="student">
+    <div className="student" data-ui="true">
       <header className="student-header">
         <div className="header-brand">
           <Image src="/brand/logo-horizontal.svg" alt="Dyscovery" width={180} height={44} priority />

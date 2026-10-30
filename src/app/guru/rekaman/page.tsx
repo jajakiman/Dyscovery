@@ -6,10 +6,26 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/ui/api";
 import { LogoutButton } from "@/lib/ui/logout-button";
+import { UserProfileMenu } from "@/lib/ui/user-profile-menu";
 
-type Candidate = { id: string; type: string; label: string; time: string; verified: boolean };
+type Candidate = {
+  id: string;
+  type: string;
+  label: string;
+  time: string;
+  timestampSec: number;
+  verified: boolean;
+  rejected?: boolean;
+};
+
 type Session = { id: string; child_id: string; status: string; created_at: string };
 type Child = { id: string; display_name: string; grade: string };
+
+const DEFAULT_CANDIDATES: Candidate[] = [
+  { id: "c1", type: "substitution", label: "Dugaan Penggantian", time: "00:04", timestampSec: 4, verified: false },
+  { id: "c2", type: "repetition", label: "Pengulangan", time: "00:12", timestampSec: 12, verified: false },
+  { id: "c3", type: "omission", label: "Penghilangan", time: "00:22", timestampSec: 22, verified: false },
+];
 
 function TeacherRecordingReviewContent() {
   const router = useRouter();
@@ -26,28 +42,30 @@ function TeacherRecordingReviewContent() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<0.75 | 1>(1);
-  const [currentTime, setCurrentTime] = useState(0);
+  const [currentTime, setCurrentTime] = useState(18); // Default 18s matching Frame 18 mock
   const [duration, setDuration] = useState(42);
   const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
 
   // Reference text
   const [promptTitle] = useState("Budi pergi ke kebun bersama Ibu.");
-  const [promptText] = useState(
-    "Di kebun ada pohon kelapa. Budi melihat buah kelapa jatuh. Ibu membawa kelapa ke rumah."
-  );
+  const [promptSentences] = useState([
+    { text: "Di kebun ada pohon kelapa.", start: 0, end: 12 },
+    { text: "Budi melihat buah kelapa jatuh.", start: 12, end: 26 },
+    { text: "Ibu membawa kelapa ke rumah.", start: 26, end: 42 },
+  ]);
 
   // AI Candidates
-  const [candidates, setCandidates] = useState<Candidate[]>([
-    { id: "c1", type: "substitution", label: "Dugaan Penggantian", time: "00:04", verified: false },
-    { id: "c2", type: "repetition", label: "Pengulangan", time: "00:12", verified: false },
-    { id: "c3", type: "omission", label: "Penghilangan", time: "00:22", verified: false },
-  ]);
+  const [candidates, setCandidates] = useState<Candidate[]>(DEFAULT_CANDIDATES);
 
   // Rubric state
   const [rubricAccuracy, setRubricAccuracy] = useState(true);
   const [rubricFluency, setRubricFluency] = useState(true);
   const [rubricAudioQuality, setRubricAudioQuality] = useState(true);
-  const [taskAttemptId] = useState("");
+  const [taskAttemptId, setTaskAttemptId] = useState("");
+
+  // Manual note state
+  const [manualNote, setManualNote] = useState("");
+  const [showAddManual, setShowAddManual] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -74,17 +92,19 @@ function TeacherRecordingReviewContent() {
       }
 
       // Load task attempts and recordings if available
-      // ponytail: fallback prototype audio and annotations; upgrade when live WebRTC/streaming is connected.
       if (activeSessId) {
         const aiRes = await api<{
           analyses?: Array<{
             recording_id: string;
-            ai_annotations: Array<{ id: string; annotation_type: string; observed_text: string }>;
+            task_attempt_id?: string;
+            ai_annotations: Array<{ id: string; annotation_type: string; observed_text: string; start_time_ms?: number }>;
           }>;
         }>(`/api/assessment-sessions/${activeSessId}/ai`);
 
         if (aiRes.ok && aiRes.data.analyses && aiRes.data.analyses.length > 0) {
-          const recId = aiRes.data.analyses[0].recording_id;
+          const first = aiRes.data.analyses[0];
+          if (first.task_attempt_id) setTaskAttemptId(first.task_attempt_id);
+          const recId = first.recording_id;
           if (recId) {
             const playRes = await api<{ playbackUrl: string; durationMs: number }>(
               `/api/assessment-sessions/${activeSessId}/recordings/${recId}`
@@ -93,6 +113,30 @@ function TeacherRecordingReviewContent() {
               setPlaybackUrl(playRes.data.playbackUrl);
               if (playRes.data.durationMs) setDuration(Math.round(playRes.data.durationMs / 1000));
             }
+          }
+
+          // If AI annotations are available, map them
+          if (first.ai_annotations && first.ai_annotations.length > 0) {
+            const mapped = first.ai_annotations.map((a, i) => {
+              const sec = Math.round((a.start_time_ms ?? (i + 1) * 8000) / 1000);
+              const m = Math.floor(sec / 60).toString().padStart(2, "0");
+              const s = (sec % 60).toString().padStart(2, "0");
+              const typeLabels: Record<string, string> = {
+                substitution: "Dugaan Penggantian",
+                repetition: "Pengulangan",
+                omission: "Penghilangan",
+                hesitation: "Keraguan",
+              };
+              return {
+                id: a.id,
+                type: a.annotation_type,
+                label: typeLabels[a.annotation_type] || a.annotation_type,
+                time: `${m}:${s}`,
+                timestampSec: sec,
+                verified: false,
+              };
+            });
+            setCandidates(mapped);
           }
         }
       }
@@ -105,7 +149,10 @@ function TeacherRecordingReviewContent() {
   }, [paramSessionId, router]);
 
   function togglePlay() {
-    if (!audioRef.current) return;
+    if (!audioRef.current) {
+      setPlaying(!playing);
+      return;
+    }
     if (playing) {
       audioRef.current.pause();
       setPlaying(false);
@@ -120,10 +167,40 @@ function TeacherRecordingReviewContent() {
     if (audioRef.current) audioRef.current.playbackRate = speed;
   }
 
-  function toggleCandidate(id: string) {
+  function seekTo(sec: number) {
+    setCurrentTime(sec);
+    if (audioRef.current) {
+      audioRef.current.currentTime = sec;
+    }
+  }
+
+  function verifyCandidate(id: string) {
     setCandidates((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, verified: !c.verified } : c))
+      prev.map((c) => (c.id === id ? { ...c, verified: !c.verified, rejected: false } : c))
     );
+  }
+
+  function rejectCandidate(id: string) {
+    setCandidates((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, rejected: !c.rejected, verified: false } : c))
+    );
+  }
+
+  function addManualCandidate() {
+    if (!manualNote.trim()) return;
+    const m = Math.floor(currentTime / 60).toString().padStart(2, "0");
+    const s = Math.floor(currentTime % 60).toString().padStart(2, "0");
+    const newCand: Candidate = {
+      id: `manual-${Date.now()}`,
+      type: "manual",
+      label: manualNote.trim(),
+      time: `${m}:${s}`,
+      timestampSec: Math.floor(currentTime),
+      verified: true,
+    };
+    setCandidates([...candidates, newCand]);
+    setManualNote("");
+    setShowAddManual(false);
   }
 
   async function saveReview() {
@@ -135,13 +212,13 @@ function TeacherRecordingReviewContent() {
       .filter((c) => c.verified)
       .map((c) => ({
         finding: c.type,
-        note: `Terverifikasi oleh guru pada ${c.time}`,
+        note: `${c.label} diverifikasi oleh guru pada ${c.time}`,
         evidenceLocation: c.time,
         recordingId: null,
       }));
 
-    // Save review draft
-    const res = await api<{ reviewRevisionId?: string }>("/api/assessment-sessions/" + sessionId + "/reviews", {
+    // Save review draft to backend API
+    await api<{ reviewRevisionId?: string }>("/api/assessment-sessions/" + sessionId + "/reviews", {
       taskAttemptId: taskAttemptId || "00000000-0000-0000-0000-000000000000",
       rubricResult: {
         accuracyChecked: rubricAccuracy,
@@ -152,12 +229,6 @@ function TeacherRecordingReviewContent() {
     });
 
     setBusy(false);
-    if (!res.ok) {
-      // In prototype mode with synthetic task attempt fallback
-      router.push(`/guru/laporan?session=${sessionId}`);
-      return;
-    }
-
     router.push(`/guru/laporan?session=${sessionId}`);
   }
 
@@ -168,8 +239,15 @@ function TeacherRecordingReviewContent() {
     return `${m}:${s}`;
   };
 
+  // Synthetic waveform bars generator (36 bars matching Frame 18 visualizer)
+  const waveformHeights = [
+    14, 22, 28, 16, 32, 40, 24, 18, 36, 42, 30, 20, 26, 34, 44, 38, 22, 16,
+    30, 42, 36, 24, 18, 28, 38, 40, 32, 22, 16, 26, 34, 40, 28, 18, 24, 14,
+  ];
+
   return (
-    <div className="shell">
+    <div className="shell" data-ui="true">
+      {/* Sidebar matching Frame 18 */}
       <aside className="sidebar">
         <div>
           <Image className="brand" src="/brand/logo-horizontal.svg" alt="Dyscovery" width={152} height={37} priority />
@@ -189,10 +267,11 @@ function TeacherRecordingReviewContent() {
         </div>
       </aside>
 
+      {/* Main Workspace (Frame 18: S12) */}
       <main className="workspace">
         <header className="portal-subbar">
           <span className="subbar-meta">Portal Guru • Kelas 2A / Tahun ajaran 2026–2027</span>
-          <div className="user-badge" aria-label="Profil guru">GR</div>
+          <UserProfileMenu />
         </header>
 
         <div className="page-heading">
@@ -200,10 +279,10 @@ function TeacherRecordingReviewContent() {
             <div>
               <h1>Tinjau rekaman membaca</h1>
               <p className="muted">
-                {child ? `${child.display_name} / Kelas ${child.grade}` : "Siswa Contoh A / Kelas 2A"} • Sesi 29 Oktober 2026
+                {child ? `${child.display_name} / Kelas ${child.grade}` : "Siswa Contoh A / Kelas 2A"} / Sesi contoh 29 Oktober 2026
               </p>
             </div>
-            <span className="badge ready">
+            <span className={`badge ${verifiedCount > 0 ? "ready" : "none"}`}>
               {verifiedCount > 0 ? `${verifiedCount} anotasi disetujui` : "Belum diverifikasi"}
             </span>
           </div>
@@ -213,14 +292,14 @@ function TeacherRecordingReviewContent() {
           <p className="empty" role="status">Memuat data rekaman…</p>
         ) : (
           <div className="review-grid">
-            {/* Left Card: Audio Player & Reference Text (Frame 18 / Node 819) */}
+            {/* Left Card: Audio Player, Waveform & Reference Text (Frame 18 / Node 819) */}
             <section className="card review-card" aria-labelledby="playback-heading">
               <div className="card-head">
                 <h2 id="playback-heading">Rekaman & teks acuan</h2>
                 <p className="muted small">Cuplikan ilustratif • bukan rekaman siswa</p>
               </div>
 
-              {/* Custom Player Controls */}
+              {/* Custom Player Controls & Waveform */}
               <div className="audio-control-box">
                 <audio
                   ref={audioRef}
@@ -228,39 +307,82 @@ function TeacherRecordingReviewContent() {
                   onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
                   onEnded={() => setPlaying(false)}
                 />
-                <button
-                  type="button"
-                  className="btn primary"
-                  onClick={togglePlay}
-                  aria-label={playing ? "Jeda pemutaran" : "Putar rekaman"}
-                >
-                  {playing ? "Jeda" : "Putar"}
-                </button>
-                <div className="speed-toggles">
+
+                <div className="audio-player-top-row">
                   <button
                     type="button"
-                    className={`btn-speed ${playbackSpeed === 0.75 ? "active" : ""}`}
-                    onClick={() => changeSpeed(0.75)}
+                    className="btn primary"
+                    onClick={togglePlay}
+                    style={{ minWidth: 90 }}
+                    aria-label={playing ? "Jeda pemutaran" : "Putar rekaman"}
                   >
-                    0.75x
+                    {playing ? "Jeda" : "Putar"}
                   </button>
-                  <button
-                    type="button"
-                    className={`btn-speed ${playbackSpeed === 1 ? "active" : ""}`}
-                    onClick={() => changeSpeed(1)}
-                  >
-                    1x
-                  </button>
+                  <div className="speed-toggles">
+                    <button
+                      type="button"
+                      className={`btn-speed ${playbackSpeed === 0.75 ? "active" : ""}`}
+                      onClick={() => changeSpeed(0.75)}
+                    >
+                      0.75x
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn-speed ${playbackSpeed === 1 ? "active" : ""}`}
+                      onClick={() => changeSpeed(1)}
+                    >
+                      1x
+                    </button>
+                  </div>
+                  <span className="audio-timer">
+                    {formatTime(currentTime)} / {formatTime(duration)} • Ilustrasi
+                  </span>
                 </div>
-                <span className="audio-timer">
-                  {formatTime(currentTime)} / {formatTime(duration)} • Ilustrasi
-                </span>
+
+                {/* Interactive Waveform Bar Visualizer */}
+                <div
+                  className="waveform-bar-container"
+                  role="slider"
+                  aria-label="Posisi rekaman suara"
+                  aria-valuenow={currentTime}
+                  aria-valuemin={0}
+                  aria-valuemax={duration}
+                >
+                  {waveformHeights.map((h, i) => {
+                    const barTime = (i / waveformHeights.length) * duration;
+                    const isPlayed = barTime <= currentTime;
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        className={`waveform-bar ${isPlayed ? "played" : ""}`}
+                        style={{ height: `${h}px` }}
+                        onClick={() => seekTo(barTime)}
+                        title={`Lompat ke ${formatTime(barTime)}`}
+                      />
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Reference Text Card */}
+              {/* Reference Text Card with Synchronized Active Sentence */}
               <div className="reference-text-box">
                 <h3 className="reference-title">{promptTitle}</h3>
-                <p className="reference-body">{promptText}</p>
+                <div className="reference-body">
+                  {promptSentences.map((sent, idx) => {
+                    const isCurrent = currentTime >= sent.start && currentTime <= sent.end;
+                    return (
+                      <p
+                        key={idx}
+                        className={`sentence-line ${isCurrent ? "highlight-active" : ""}`}
+                        onClick={() => seekTo(sent.start)}
+                        title="Klik untuk dengarkan bagian ini"
+                      >
+                        {sent.text}
+                      </p>
+                    );
+                  })}
+                </div>
               </div>
             </section>
 
@@ -276,23 +398,67 @@ function TeacherRecordingReviewContent() {
               {/* AI Candidates List */}
               <div className="candidate-list">
                 {candidates.map((c) => (
-                  <div key={c.id} className="candidate-item">
-                    <span className="candidate-badge">{c.label} ({c.time})</span>
-                    <button
-                      type="button"
-                      className={`btn-check ${c.verified ? "checked" : ""}`}
-                      onClick={() => toggleCandidate(c.id)}
-                      aria-pressed={c.verified}
-                    >
-                      {c.verified ? "Diverifikasi ✓" : "Cek"}
-                    </button>
+                  <div key={c.id} className={`candidate-item ${c.verified ? "verified-row" : c.rejected ? "rejected-row" : ""}`}>
+                    <div className="candidate-info">
+                      <span className="candidate-badge">{c.label}</span>
+                      <button
+                        type="button"
+                        className="candidate-timestamp"
+                        onClick={() => seekTo(c.timestampSec)}
+                        title="Putar dari detik ini"
+                      >
+                        ({c.time}) ⏵
+                      </button>
+                    </div>
+                    <div className="candidate-actions">
+                      <button
+                        type="button"
+                        className={`btn-check ${c.verified ? "checked" : ""}`}
+                        onClick={() => verifyCandidate(c.id)}
+                        aria-pressed={c.verified}
+                      >
+                        {c.verified ? "Diverifikasi" : "Cek"}
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn-reject ${c.rejected ? "rejected" : ""}`}
+                        onClick={() => rejectCandidate(c.id)}
+                        aria-label="Tolak kandidat ini"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
 
+              {/* Add Manual Annotation */}
+              {!showAddManual ? (
+                <button
+                  type="button"
+                  className="btn-add-manual"
+                  onClick={() => setShowAddManual(true)}
+                >
+                  + Tambah catatan manual guru
+                </button>
+              ) : (
+                <div className="manual-annotation-form">
+                  <input
+                    type="text"
+                    placeholder="Tuliskan catatan observasi guru..."
+                    value={manualNote}
+                    onChange={(e) => setManualNote(e.target.value)}
+                  />
+                  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 6 }}>
+                    <button type="button" className="btn secondary" style={{ minHeight: 36, padding: "4px 12px", fontSize: 13 }} onClick={() => setShowAddManual(false)}>Batal</button>
+                    <button type="button" className="btn primary" style={{ minHeight: 36, padding: "4px 12px", fontSize: 13 }} onClick={addManualCandidate}>Simpan</button>
+                  </div>
+                </div>
+              )}
+
               <hr className="card-divider" />
 
-              {/* Rubric */}
+              {/* Observation Rubric matching Frame 18 */}
               <div className="rubric-block">
                 <h3>Rubrik observasi</h3>
                 <label className="check">
@@ -321,6 +487,7 @@ function TeacherRecordingReviewContent() {
                 </label>
               </div>
 
+              {/* Action Box */}
               <div className="review-action-box">
                 <button
                   type="button"

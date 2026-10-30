@@ -1,6 +1,49 @@
 # Dyscovery: Implementation Progress
 
-## Checkpoint aktif dan korelasi spesifikasi (29 Oktober 2026)
+## Checkpoint aktif: Redesain Landing Page Outcrowd Data-Driven Analytics Platform & Slicing Frontend (30 Oktober 2026)
+
+Halaman utama (Landing Page `/`) telah dirombak total dan dipoles mengacu pada referensi **Landing Page for a Data-Driven Analytics Platform by Outcrowd on Dribbble** menggunakan skill `/design-taste-frontend`. Desain mengadopsi tema gelap modern (*deep slate* `#0a0d14` dan surface `#131824`), tipografi Schibsted Grotesk berbobot tegas, tata letak bento grid modular, serta konsol interaktif telaah membaca guru (*live waveform audio player*, sinkronisasi suku kata, dan verifikasi kandidat fonemik AI).
+
+Hasil verifikasi desain landing page:
+- `lint.mjs`: **0 FAIL, 0 WARN** (bebas dari ai-slop, tanpa emoji UI, tanpa gradien terlarang).
+- `inspect.mjs` (headless browser di 1440px, 768px, dan 390px): **0 FAIL** (headline persis 2 baris, rasio kontras 9.8:1 pada tombol utama, layer gerak 16+ elemen terdeteksi, lantai visual 4+ fragmen antarmuka).
+- `npm run typecheck`: **0 errors**.
+- `node --test`: **18/18 test suites passed**.
+- `npm run build`: **26/26 routes terkompilasi optimal**.
+
+---
+
+## Checkpoint sebelumnya: Slicing Frontend 14 Frame Desktop & Integrasi Backend (30 Oktober 2026)
+
+Implementasi frontend dari 14 mockup desktop (Docs/Dyscovery-Desktop-Mockups.figcraft S01–S14) telah selesai ditinjau, disempurnakan, dan diintegrasikan secara penuh dengan seluruh API backend yang ada, mematuhi prinsip anti-slop design-taste-frontend serta standar spesifikasi desain Docs/Dyscovery-Design-System.md.
+
+| Screen / Frame | Mockup ID | Route Frontend | Status & Bukti Integrasi |
+|---|---|---|---|
+| S01 Sambutan & petualangan | Frame 7 | /siswa (welcome) | Maskot piko-wave.svg, kartu instruksi tanpa mikrofon, tray panduan taktil. |
+| S02 Story Scene 1 (Discovery) | Frame 8 | /siswa (discovery) | Kelapa interaktif, maskot piko-guide.svg, dialog 'Wah, ada buah kelapa!', tombol 'Ayo, bantu Piko'. |
+| S03 Susun huruf taktil | Frame 9 | /siswa (task) | 6 kotak slot 1–6, 6 ubin K-E-L-A-P-A font Andika 32px taktil 3D, tanpa mikrofon, API task-attempts. |
+| S04 Transisi 33% | Frame 10 | /siswa (bridge) | Stepper pos 1–3 (Hutan kelapa selesai, Bukit membaca aktif), narasi persiapan mikrofon. |
+| S05 Membaca nyaring aktif | Frame 11 | /siswa (reading) | Teks bacaan 'Pagi di kebun' font Andika 28px/1.6 rata kiri, tray status mikrofon stabil, Piko TIDAK TAMPIL di seluruh layar (bebas distraksi). Integrasi upload audio privat, hash SHA-256, dan otomatis memicu dispatch AI pascarekaman. |
+| S06 Transisi 66% | Frame 12 | /siswa (bridge) | Stepper pos 3 aktif, peti harta terbuka, piko-cheer.svg. |
+| S07 Modal jeda & bantuan teknis | Frame 13 | /siswa (pause modal) | Maskot piko-rest.svg / piko-call-teacher.svg, cek suara sekitar kebisingan rendah, tombol kembali / buka dasbor guru via PIN. |
+| S08 Petualangan selesai (100%) | Frame 14 | /siswa (finished) | Maskot piko-cheer.svg, tanpa skor ke anak, tombol 'Serahkan Perangkat ke Guru' mengunci sesi. |
+| S09 Masuk akun guru | Frame 15 | /masuk | Split art panel dengan logo & Piko, form login email/NIP, password dengan toggle eye, login Google, link register/forgot. |
+| S10 Daftar siswa & persiapan sesi | Frame 16 | /guru/siswa | Filter cari nama & filter kelas, tabel siswa ber-avatar & badge persetujuan, panel persiapan penugasan materi, uji mikrofon guru, CTA kunci perangkat. |
+| S11 Modal kunci mode siswa | Frame 17 | /guru/siswa (modal) | Badge keamanan perangkat, visual display PIN 4 digit, rincian sesi, penguncian server via POST /api/teacher-mode/enter. |
+| S12 Tinjau rekaman split-view | Frame 18 | /guru/rekaman | Kontrol player audio, speed 0.75x/1x, waveform bar visualizer interaktif yang dapat diklik/seek, teks acuan dengan kalimat tersinkronisasi playhead, kandidat anotasi AI dengan aksi verifikasi/tolak, input catatan manual guru, rubrik observasi resmi, integrasi API reviews. |
+| S13 Draf & terbitkan laporan | Frame 19 | /guru/laporan | Textarea observasi kualitatif dan panduan rumah, callout skrining bukan diagnosis, checklist pra-terbit 4 butir, snapshot immutable via API reports. |
+| S14 Portal orang tua & direktori | Frame 20 | /orangtua/laporan | Ringkasan observasi non-diagnostik, direktori 3 kolom psikolog terverifikasi (STR/klinik), modal share berbatas waktu (pilihan hari & toggle audio default nonaktif), daftar share aktif dan tombol pencabutan instan via DELETE /api/reports/[id]/shares/[shareId]. |
+
+### Hasil Verifikasi & Standar Kualitas Desain
+
+1. Anti-slop Linting (design-taste-frontend): 0 FAIL.
+2. TypeScript Strict Typecheck: 0 errors (lulus sempurna).
+3. Suite Pengujian Otomatis (18 file tes): 18/18 file lulus (100% pass).
+4. Kompilasi Produksi Next.js: 26/26 rute static & dynamic berhasil dikompilasi.
+
+---
+
+## Checkpoint sebelumnya: 29 Oktober 2026
 
 Target pemilik: penyelesaian hari ini, sebelum deadline 30 Oktober. Core MVP PRD §11 tidak dikurangi: petualangan, audio privat, AI pascarekaman, review waveform, direktori psikolog dan sharing tetap kebutuhan terbuka. Target waktu bukan bukti implementasi selesai. Bagian historis di bawah merekam keadaan saat ditulis; gunakan checkpoint ini untuk status sekarang.
 

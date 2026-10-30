@@ -20,3 +20,22 @@ export function identity(input: unknown) {
   }
   return { fullName, displayName: displayName || fullName, nip };
 }
+
+export function profileUpdate(input: unknown) {
+  if (!input || typeof input !== "object") throw new Error("Invalid input");
+  const value = input as Record<string, unknown>;
+  const fullName = typeof value.fullName === "string" ? value.fullName.trim() : undefined;
+  const displayName = typeof value.displayName === "string" ? value.displayName.trim() : undefined;
+  const avatarUrl = typeof value.avatarUrl === "string" ? value.avatarUrl : value.avatarUrl === null ? null : undefined;
+
+  if (fullName !== undefined && (!fullName || fullName.length > 150)) {
+    throw new Error("Invalid fullName");
+  }
+  if (displayName !== undefined && displayName.length > 150) {
+    throw new Error("Invalid displayName");
+  }
+  if (avatarUrl !== undefined && avatarUrl !== null && avatarUrl.length > 250000) {
+    throw new Error("Avatar image too large");
+  }
+  return { fullName, displayName, avatarUrl };
+}
