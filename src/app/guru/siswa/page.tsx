@@ -13,6 +13,21 @@ type Assignment = { id: string; child_id: string };
 type Material = { id: string; material_key: string; version: number };
 type Load = "loading" | "ready" | "forbidden" | "error";
 
+// ponytail: dummy data for manual testing when the account has no real roster; remove once synthetic seed exists on PROD.
+const DEMO_CHILDREN: Child[] = [
+  { id: "00000000-0000-4000-8000-000000000001", display_name: "Siswa Contoh A", grade: "2A" },
+  { id: "00000000-0000-4000-8000-000000000002", display_name: "Siswa Contoh B", grade: "2A" },
+  { id: "00000000-0000-4000-8000-000000000003", display_name: "Siswa Contoh C", grade: "2A" },
+  { id: "00000000-0000-4000-8000-000000000004", display_name: "Siswa Contoh D", grade: "2B" },
+  { id: "00000000-0000-4000-8000-000000000005", display_name: "Siswa Contoh E", grade: "2B" },
+];
+const DEMO_SESSIONS: Session[] = [
+  { id: "00000000-0000-4000-9000-000000000001", child_id: DEMO_CHILDREN[0].id, status: "completed", created_at: "2026-10-29T08:00:00Z" },
+  { id: "00000000-0000-4000-9000-000000000002", child_id: DEMO_CHILDREN[1].id, status: "in_progress", created_at: "2026-10-30T08:00:00Z" },
+  { id: "00000000-0000-4000-9000-000000000003", child_id: DEMO_CHILDREN[2].id, status: "draft", created_at: "2026-10-30T09:00:00Z" },
+  { id: "00000000-0000-4000-9000-000000000004", child_id: DEMO_CHILDREN[3].id, status: "draft", created_at: "2026-10-30T09:30:00Z" },
+];
+
 const initials = (name: string) => name.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("");
 
 export default function StudentRoster() {
@@ -27,6 +42,8 @@ export default function StudentRoster() {
   const [needPin, setNeedPin] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [name, setName] = useState("");
+  const [demo, setDemo] = useState<null | "empty" | "forbidden" | "error">(null);
 
   const refresh = useCallback(async () => {
     setLoad("loading");
@@ -35,9 +52,17 @@ export default function StudentRoster() {
     if (mode.data.mode === "student" || mode.data.mode === "locked") return router.replace("/siswa");
     const [kids, sess, asg, mat] = await Promise.all([api<{ children?: Child[] }>("/api/children"), api<{ sessions?: Session[] }>("/api/assessment-sessions"), api<{ assignments?: Assignment[] }>("/api/assignments"), api<{ materials?: Material[] }>("/api/materials")]);
     if (kids.status === 401) return router.replace("/masuk");
-    if (kids.status === 403) return setLoad("forbidden");
-    if (!kids.ok || !sess.ok || !asg.ok || !mat.ok) return setLoad("error");
-    setChildren(kids.data.children ?? []);
+    const me = await api<{ profile?: { full_name?: string | null; display_name?: string | null } }>("/api/auth/profile");
+    setName(me.data.profile?.display_name || me.data.profile?.full_name || "");
+    const realKids = kids.ok ? kids.data.children ?? [] : [];
+    if (realKids.length === 0) {
+      setDemo(kids.status === 403 ? "forbidden" : kids.ok && sess.ok ? "empty" : "error");
+      setChildren(DEMO_CHILDREN); setSessions(DEMO_SESSIONS); setAssignments([]); setMaterials([]);
+      return setLoad("ready");
+    }
+    if (!sess.ok || !asg.ok || !mat.ok) return setLoad("error");
+    setDemo(null);
+    setChildren(realKids);
     setSessions(sess.data.sessions ?? []);
     setAssignments(asg.data.assignments ?? []);
     setMaterials(mat.data.materials ?? []);
@@ -86,6 +111,14 @@ export default function StudentRoster() {
     await enter(sessionId);
   }
 
+  const countBy = (status: string) => sessions.filter((s) => s.status === status).length;
+  const stats = [
+    { tone: "blue", value: children.length, label: "Siswa ditugaskan", piko: "piko-guide" },
+    { tone: "apricot", value: countBy("draft"), label: "Draf sesi siap dimulai", piko: "piko-wave" },
+    { tone: "lilac", value: countBy("in_progress"), label: "Sesi sedang berjalan", piko: "piko-listen" },
+    { tone: "green", value: countBy("completed"), label: "Sesi selesai, siap ditinjau", piko: "piko-cheer" },
+  ];
+
   const pickedDrafts = picked ? drafts(picked.id) : [];
   const target = pickedDrafts[0];
   const assignment = picked ? assignments.find((item) => item.child_id === picked.id) : undefined;
@@ -113,13 +146,32 @@ export default function StudentRoster() {
       <main className="workspace">
         <header className="portal-subbar">
           <span className="subbar-meta">Portal Guru • Kelas 2A / Tahun ajaran 2026–2027</span>
-          <div className="user-badge" aria-label="Profil guru">GR</div>
+          <div className="user-badge" aria-label={name ? `Profil ${name}` : "Profil guru"}>{name ? initials(name) : "GR"}</div>
         </header>
 
-        <div className="page-heading">
-          <h1>Daftar siswa</h1>
-          <p className="muted">Pilih siswa, lalu serahkan perangkat setelah mode siswa aktif.</p>
-        </div>
+        <section className="dash-hero" aria-labelledby="hero-title">
+          <div>
+            <p className="dash-hero-tag">Ruang guru</p>
+            <h1 id="hero-title">Hai{name ? `, ${name}` : ""}</h1>
+            <p>Pilih siswa, siapkan sesi, lalu serahkan perangkat setelah mode siswa aktif.</p>
+          </div>
+          <Image className="dash-hero-piko" src="/mascot/piko-wave.svg" alt="" width={200} height={206} priority />
+        </section>
+
+        {demo && <p className="notice warn" role="status" style={{ marginBottom: 20 }}>
+          <strong>Data contoh untuk uji manual.</strong>{" "}
+          {demo === "forbidden" ? "Akun Anda belum terverifikasi sebagai guru." : demo === "error" ? "Data asli belum dapat dimuat." : "Belum ada siswa yang ditugaskan ke akun Anda."}{" "}
+          Angka dan nama di bawah bukan data siswa nyata.
+        </p>}
+
+        {load === "ready" && <ul className="dash-stats" aria-label="Ringkasan sesi">
+          {stats.map((s) => <li key={s.label} className={`dash-stat ${s.tone}`}>
+            <strong>{s.value}</strong>
+            <span>{s.label}</span>
+            <Image src={`/mascot/${s.piko}.svg`} alt="" width={72} height={74} />
+          </li>)}
+        </ul>}
+
         <section className="card" aria-labelledby="roster-title">
           <div className="table-head">
             <h2 id="roster-title">Siswa kelas Anda</h2>
