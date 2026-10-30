@@ -4,9 +4,30 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/ui/api";
 import { createClient } from "@/lib/supabase/client";
+import { micVerdict, rms, SILENCE_RMS, SILENCE_WARN_MS } from "@/lib/ui/mic";
 
-type Item = { key: string; phase: string; encounterType: string; prompt: string; tiles: string[] | null };
+type Item = { key: string; phase: string; encounterType: string; prompt: string; tiles: string[] | null; image?: string | null; choices?: string[] | null };
 type Payload = { sessionId: string; items: Item[]; done: string[] };
+type MicIssue = "" | "denied" | "missing" | "silent" | "short";
+
+// ponytail: local simulation for demo roster; nothing is saved. Same items as seed-reading-4pos.sql.
+export const DEMO_PAYLOAD: Payload = {
+  sessionId: "demo",
+  done: [],
+  items: [
+    { key: "pos1-benda", phase: "screening", encounterType: "spelling_image", prompt: "Benda apa ini?", tiles: null, image: "/assets/bola.svg", choices: ["bola", "bula", "dola"] },
+    { key: "pos2-hewan", phase: "screening", encounterType: "spelling_image", prompt: "Apa hewan ini?", tiles: null, image: "/assets/kucing.svg", choices: ["kucing", "kusing", "kuncing"] },
+    { key: "pos3-susun", phase: "screening", encounterType: "letter_arrange", prompt: "Susun huruf menjadi nama benda di gambar.", tiles: ["P", "A", "K", "E", "A", "L"], image: "/assets/kelapa.svg" },
+    { key: "pos4-bacaan", phase: "screening", encounterType: "passage_read", prompt: "Budi pergi ke kebun bersama Ibu. Mereka memetik kelapa di bawah pohon rindang.", tiles: null },
+  ],
+};
+
+const MIC_TEXT: Record<Exclude<MicIssue, "">, string> = {
+  denied: "Izin mikrofon ditolak. Minta guru mengizinkan mikrofon di pengaturan browser, lalu tekan Periksa ulang.",
+  missing: "Mikrofon tidak ditemukan. Minta guru memasang atau menyalakan mikrofon, lalu tekan Periksa ulang.",
+  silent: "Suara tidak terdengar di rekaman. Periksa tombol bisu mikrofon, lalu rekam ulang.",
+  short: "Rekaman terlalu pendek. Bacalah sampai selesai, lalu rekam ulang.",
+};
 type Stage = "loading" | "unavailable" | "welcome" | "task" | "bridge" | "recording" | "review" | "sending" | "finished" | "error";
 
 const READ_TYPES = ["word_read", "passage_read"];
@@ -25,7 +46,7 @@ function Subbar({ percent }: { percent: number }) {
   );
 }
 
-function Tiles({ tiles, busy, onDone }: { tiles: string[]; busy: boolean; onDone: (word: string) => void }) {
+function Tiles({ tiles, image, busy, onDone }: { tiles: string[]; image?: string | null; busy: boolean; onDone: (word: string) => void }) {
   const [slots, setSlots] = useState<(number | null)[]>(() => tiles.map(() => null));
   const used = new Set(slots.filter((s): s is number => s !== null));
   const full = slots.every((s) => s !== null);
@@ -38,9 +59,9 @@ function Tiles({ tiles, busy, onDone }: { tiles: string[]; busy: boolean; onDone
 
   return (
     <div className="tiles-interactive">
-      <div className="coconut-preview">
-        <Image src="/assets/kelapa.svg" alt="Buah kelapa" width={106} height={94} priority />
-      </div>
+      {image && <div className="coconut-preview">
+        <Image src={image} alt="Gambar benda yang dieja" width={106} height={94} priority />
+      </div>}
 
       <ol className="slots-container" aria-label={`Kotak jawaban 1 sampai ${tiles.length}`}>
         {slots.map((s, i) => (
@@ -152,7 +173,7 @@ function Bridge({ percent, title, text, next }: { percent: number; title: string
   );
 }
 
-export function Reading({ fallback, onExitTeacher }: { fallback: React.ReactNode; onExitTeacher: () => void }) {
+export function Reading({ fallback, onExitTeacher, demo = false }: { fallback: React.ReactNode; onExitTeacher: () => void; demo?: boolean }) {
   const [data, setData] = useState<Payload | null>(null);
   const [stage, setStage] = useState<Stage>("loading");
   const [index, setIndex] = useState(0);
@@ -167,9 +188,24 @@ export function Reading({ fallback, onExitTeacher }: { fallback: React.ReactNode
   const stream = useRef<MediaStream | null>(null);
   const requestId = useRef("");
   const attemptId = useRef("");
+  const [micIssue, setMicIssue] = useState<MicIssue>("");
+  const [level, setLevel] = useState(0);
+  const [quiet, setQuiet] = useState(false);
+  const audioCtx = useRef<AudioContext | null>(null);
+  const peak = useRef(0);
+
+  const stopMeter = () => {
+    void audioCtx.current?.close();
+    audioCtx.current = null;
+    stream.current?.getTracks().forEach((t) => t.stop());
+  };
 
   useEffect(() => {
     let alive = true;
+    if (demo) {
+      const t = window.setTimeout(() => { setData(DEMO_PAYLOAD); setStage("welcome"); }, 0);
+      return () => { window.clearTimeout(t); stopMeter(); };
+    }
     void api<Payload>("/api/student/session").then((r) => {
       if (!alive) return;
       if (!r.ok) return setStage("unavailable");
@@ -181,9 +217,9 @@ export function Reading({ fallback, onExitTeacher }: { fallback: React.ReactNode
     });
     return () => {
       alive = false;
-      stream.current?.getTracks().forEach((t) => t.stop());
+      stopMeter();
     };
-  }, []);
+  }, [demo]);
 
   const item = data?.items[index];
   const reading = isRead(item) && stage !== "finished" && stage !== "welcome" && stage !== "bridge";
@@ -192,9 +228,37 @@ export function Reading({ fallback, onExitTeacher }: { fallback: React.ReactNode
   const pct = stage === "finished" ? 100 : index < 2 ? 0 : index < 3 ? 33 : 66;
 
   async function start() {
-    setMessage("");
+    setMessage(""); setMicIssue(""); setQuiet(false); setLevel(0);
+    peak.current = 0;
+    if (!navigator.mediaDevices?.getUserMedia) return setMicIssue("missing");
     try {
       stream.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+      const name = e instanceof DOMException ? e.name : "";
+      return setMicIssue(name === "NotAllowedError" || name === "SecurityError" ? "denied" : "missing");
+    }
+    try {
+      const ctx = new AudioContext();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      ctx.createMediaStreamSource(stream.current).connect(analyser);
+      audioCtx.current = ctx;
+      const buf = new Float32Array(analyser.fftSize);
+      const t0 = Date.now();
+      const tick = () => {
+        if (audioCtx.current !== ctx) return;
+        analyser.getFloatTimeDomainData(buf);
+        const v = rms(buf);
+        peak.current = Math.max(peak.current, v);
+        setLevel(v);
+        setQuiet(Date.now() - t0 > SILENCE_WARN_MS && peak.current < SILENCE_RMS);
+        requestAnimationFrame(tick);
+      };
+      tick();
+    } catch {
+      peak.current = 1; // ponytail: no Web Audio → skip silence check, keep recording usable.
+    }
+    try {
       chunks.current = [];
       const rec = new MediaRecorder(
         stream.current,
@@ -204,8 +268,11 @@ export function Reading({ fallback, onExitTeacher }: { fallback: React.ReactNode
         if (e.data.size) chunks.current.push(e.data);
       };
       rec.onstop = () => {
-        stream.current?.getTracks().forEach((t) => t.stop());
+        stopMeter();
+        setLevel(0); setQuiet(false);
         duration.current = Date.now() - startedAt.current;
+        const verdict = micVerdict(duration.current, peak.current);
+        if (verdict !== "ok") { setMicIssue(verdict); setBlob(null); return setStage("task"); }
         setBlob(new Blob(chunks.current, { type: "audio/webm" }));
         setStage("review");
       };
@@ -214,7 +281,8 @@ export function Reading({ fallback, onExitTeacher }: { fallback: React.ReactNode
       rec.start();
       setStage("recording");
     } catch {
-      setMessage("Mikrofon tidak dapat dipakai. Panggil guru untuk memeriksa izin mikrofon.");
+      stopMeter();
+      setMicIssue("missing");
     }
   }
 
@@ -222,6 +290,7 @@ export function Reading({ fallback, onExitTeacher }: { fallback: React.ReactNode
     if (!data || !item) return;
     setStage("sending");
     setMessage("");
+    if (demo) return advance();
     const audio = isRead(item);
     if (!requestId.current) requestId.current = crypto.randomUUID();
     if (!attemptId.current) {
@@ -267,6 +336,11 @@ export function Reading({ fallback, onExitTeacher }: { fallback: React.ReactNode
         return setStage("review");
       }
     }
+    return advance();
+  }
+
+  async function advance() {
+    if (!data) return;
     requestId.current = "";
     attemptId.current = "";
     setBlob(null);
@@ -274,6 +348,7 @@ export function Reading({ fallback, onExitTeacher }: { fallback: React.ReactNode
     const next = index + 1;
     setIndex(next);
     if (next >= data.items.length) {
+      if (demo) return setStage("finished");
       const done = await api(`/api/assessment-sessions/${data.sessionId}/complete`, {});
       if (!done.ok) {
         setMessage("Jawaban tersimpan, tetapi sesi belum ditutup. Panggil guru.");
@@ -346,13 +421,15 @@ export function Reading({ fallback, onExitTeacher }: { fallback: React.ReactNode
           {/* Header area of the task */}
           <div className="task-header-block">
             <h1 className="task-main-heading">
-              {reading ? "Saatnya membaca pelan-pelan" : item.tiles ? "Bantu Piko menyusun kata" : "Tantangan berikutnya"}
+              {reading ? "Saatnya membaca pelan-pelan" : item.tiles ? "Bantu Piko menyusun kata" : item.image ? item.prompt : "Tantangan berikutnya"}
             </h1>
             <p className="task-sub-heading">
               {reading
                 ? "Bacalah dengan suaramu sendiri. Mikrofon merekam bacaanmu secara otomatis."
                 : item.tiles
-                ? "Pilih ubin huruf di bawah, lalu masukkan ke dalam kotak 1 sampai 6."
+                ? `Pilih ubin huruf di bawah, lalu masukkan ke dalam kotak 1 sampai ${item.tiles.length}.`
+                : item.image
+                ? item.choices ? "Sentuh nama yang tepat untuk gambar ini." : "Ketik nama gambar ini."
                 : item.prompt}
             </p>
           </div>
@@ -368,19 +445,23 @@ export function Reading({ fallback, onExitTeacher }: { fallback: React.ReactNode
 
                 <div className="reading-mic-tray" role="status">
                   <div className="mic-indicator-bars" aria-hidden="true">
-                    {[10, 16, 24, 30, 12, 18, 26, 32, 14, 20, 28].map((h, i) => (
+                    {[0.3, 0.5, 0.75, 0.95, 0.4, 0.6, 0.8, 1, 0.45, 0.65, 0.85].map((w, i) => (
                       <span
                         key={i}
                         className="mic-bar"
                         style={{
-                          height: stage === "recording" ? `${h}px` : "6px",
+                          height: stage === "recording" ? `${Math.max(6, Math.min(32, level * 400 * w))}px` : "6px",
                           opacity: stage === "recording" ? 1 : 0.35,
                         }}
                       />
                     ))}
                   </div>
                   <span className="mic-status-label">
-                    {stage === "recording"
+                    {stage === "recording" && quiet
+                      ? "Suara belum terdengar. Bacalah lebih dekat ke mikrofon."
+                      : stage === "recording" && level >= SILENCE_RMS
+                      ? "Suara terdengar jelas ✓"
+                      : stage === "recording"
                       ? "Mikrofon aktif: merekam suara bacaan"
                       : stage === "review"
                       ? "Rekaman siap dikirim ke guru"
@@ -389,6 +470,12 @@ export function Reading({ fallback, onExitTeacher }: { fallback: React.ReactNode
                       : "Mikrofon belum aktif. Tekan Mulai saat siap."}
                   </span>
                 </div>
+                {micIssue && (
+                  <div className="notice warn mic-issue" role="alert">
+                    <Image src="/mascot/piko-call-teacher.svg" alt="" width={64} height={66} />
+                    <p>{MIC_TEXT[micIssue]}</p>
+                  </div>
+                )}
               </section>
 
               {/* Bottom Reading Controls Bar per Frame 11 */}
@@ -410,7 +497,7 @@ export function Reading({ fallback, onExitTeacher }: { fallback: React.ReactNode
                 <div className="reading-action-right">
                   {stage === "task" && (
                     <button type="button" className="btn primary reading-cta-btn" onClick={() => void start()}>
-                      Mulai merekam
+                      {micIssue === "denied" || micIssue === "missing" ? "Periksa ulang" : micIssue ? "Rekam ulang" : "Mulai merekam"}
                     </button>
                   )}
                   {stage === "recording" && (
@@ -443,7 +530,18 @@ export function Reading({ fallback, onExitTeacher }: { fallback: React.ReactNode
               </div>
               <div className="task-interactive-side">
                 {item.tiles ? (
-                  <Tiles key={item.key} tiles={item.tiles} busy={stage === "sending"} onDone={(w) => void send(w)} />
+                  <Tiles key={item.key} tiles={item.tiles} image={item.image} busy={stage === "sending"} onDone={(w) => void send(w)} />
+                ) : item.image && item.choices ? (
+                  <div key={item.key} className="picture-task">
+                    <Image src={item.image} alt="Gambar soal" width={160} height={160} priority />
+                    <ul className="choice-row" aria-label="Pilihan jawaban">
+                      {item.choices.map((c) => (
+                        <li key={c}>
+                          <button type="button" className="tile-box choice-box reading" disabled={stage === "sending"} onClick={() => void send(c)}>{c}</button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ) : (
                   <form
                     key={item.key}
@@ -453,6 +551,7 @@ export function Reading({ fallback, onExitTeacher }: { fallback: React.ReactNode
                       void send(String(new FormData(e.currentTarget).get("response") ?? "").trim());
                     }}
                   >
+                    {item.image && <Image src={item.image} alt="Gambar soal" width={160} height={160} priority style={{ justifySelf: "center" }} />}
                     <div className="field">
                       <label htmlFor="resp">Jawabanmu</label>
                       <input id="resp" name="response" required maxLength={300} autoComplete="off" disabled={stage === "sending"} />

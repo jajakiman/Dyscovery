@@ -1,0 +1,36 @@
+begin;
+-- Adds optional `image` (allowlisted /assets/*.svg path) and `choices` (2-4 short words) for picture tasks: "Benda apa ini?" / "Apa hewan ini?".
+create or replace function public.student_session_items() returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare mode jsonb; definition jsonb; current_id uuid; items jsonb;
+begin
+  mode := public.current_student_mode();
+  if mode->>'mode' <> 'student' then raise exception 'Student access unavailable' using errcode='42501'; end if;
+  current_id := (mode->>'sessionId')::uuid;
+  select v.definition into definition from public.assessment_sessions s
+    join public.material_versions v on v.id=s.material_version_id
+    where s.id=current_id and s.status='in_progress' and v.approval_status='approved';
+  if definition is null or definition->>'protocol' is distinct from 'reading-5pos-v1'
+    or jsonb_typeof(definition->'items') is distinct from 'array' then
+    raise exception 'Reading protocol unavailable' using errcode='22023';
+  end if;
+  select coalesce(jsonb_agg(jsonb_build_object('key',i->>'key','phase',i->>'phase',
+      'encounterType',i->>'encounterType','prompt',i->>'prompt',
+      'tiles',case when jsonb_typeof(i->'tiles')='array' and jsonb_array_length(i->'tiles') between 2 and 12
+        and not exists(select 1 from jsonb_array_elements(i->'tiles') x where jsonb_typeof(x)<>'string' or char_length(x#>>'{}')<>1)
+        then i->'tiles' else null end,
+      'image',case when i->>'image' ~ '^/assets/[a-z0-9-]{1,40}\.svg$' then i->>'image' else null end,
+      'choices',case when jsonb_typeof(i->'choices')='array' and jsonb_array_length(i->'choices') between 2 and 4
+        and not exists(select 1 from jsonb_array_elements(i->'choices') x where jsonb_typeof(x)<>'string' or char_length(x#>>'{}') not between 1 and 30)
+        then i->'choices' else null end) order by o), '[]'::jsonb) into items
+    from jsonb_array_elements(definition->'items') with ordinality t(i,o)
+    where i->>'key' ~ '^[a-z0-9-]{1,80}$'
+      and i->>'encounterType' in ('letter_arrange','spelling_image','word_read','passage_read','comprehension')
+      and i->>'phase' in ('warmup','practice','screening')
+      and char_length(i->>'prompt') between 1 and 600;
+  if jsonb_array_length(items) = 0 then raise exception 'Reading protocol unavailable' using errcode='22023'; end if;
+  return jsonb_build_object('sessionId',current_id,'items',items,
+    'done',coalesce((select jsonb_agg(a.item_key) from public.task_attempts a where a.session_id=current_id),'[]'::jsonb));
+end;
+$$;
+commit;

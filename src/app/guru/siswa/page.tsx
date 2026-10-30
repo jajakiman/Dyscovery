@@ -221,7 +221,11 @@ export default function StudentRoster() {
       <Modal open={Boolean(picked)} onClose={() => setPicked(null)} titleId="session-title">
         {picked && <>
           <h2 id="session-title">Mode siswa untuk {picked.display_name}</h2>
-          {!target && !assignment && <p className="notice warn">Siswa ini belum punya penugasan aktif untuk akun Anda. Hubungi operator sekolah.</p>}
+          {demo && <div className="modal-section">
+            <p className="muted" style={{ marginTop: 0 }}>Ini siswa contoh. Coba 4 pos asesmen (tebak benda, tebak hewan, susun kata, membaca dengan mikrofon) tanpa mengunci perangkat. Jawaban dan rekaman tidak disimpan.</p>
+            <Link className="btn accent" href="/guru/simulasi">Mulai simulasi Mode Siswa</Link>
+          </div>}
+          {!demo && !target && !assignment && <p className="notice warn">Siswa ini belum punya penugasan aktif untuk akun Anda. Hubungi operator sekolah.</p>}
           {!target && assignment && (materials.length === 0
             ? <p className="notice warn">Belum ada materi yang disetujui. Hubungi operator.</p>
             : <form className="modal-section" onSubmit={(event) => void makeDraft(event, assignment.id)}>
