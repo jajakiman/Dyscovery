@@ -5,51 +5,51 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import "./landing.css";
 
-interface StudentSample {
+interface ModulePreview {
   id: string;
-  name: string;
-  grade: string;
-  title: string;
+  tabLabel: string;
+  moduleTitle: string;
+  stimulusLabel: string;
   syllables: string[];
-  candidatePhoneme: string;
-  candidateDesc: string;
-  wordsPerMinute: number;
-  initialAccuracy: number;
+  aiDraftTitle: string;
+  aiDraftDesc: string;
+  highlightMetric: string;
+  highlightLabel: string;
 }
 
-const SAMPLES: StudentSample[] = [
+const MODULE_PREVIEWS: ModulePreview[] = [
   {
-    id: "nadia",
-    name: "Nadia Safitri",
-    grade: "Kelas 2C",
-    title: "Kelinci Putih Melompat",
-    syllables: ["Ke", "lin", "ci", "pu", "tih", "me", "lom", "pat", "di", "ta", "man"],
-    candidatePhoneme: "Fonem /p/ dan /t/ pada 'pu-tih' & 'me-lom-pat'",
-    candidateDesc: "Artikulasi letup bilabial /p/ bersih; jeda antar-klausa alami 0.6 detik",
-    wordsPerMinute: 54,
-    initialAccuracy: 95,
+    id: "pos-bacaan",
+    tabLabel: "Sinkronisasi Audio",
+    moduleTitle: "Prasasti Cerita Hutan (Pos 4)",
+    stimulusLabel: "Contoh kartu stimulus bacaan (Tipografi Andika ramah anak):",
+    syllables: ["Pe", "tu", "a", "lang", "an", "Pi", "ko", "di", "hu", "tan", "hijau"],
+    aiDraftTitle: "Asisten Draf AI: Penandaan Fonem & Jeda Otomatis",
+    aiDraftDesc: "Menyusun draf awal anotasi pascarekaman dalam 2–15 detik; guru memegang kendali verifikasi penuh.",
+    highlightMetric: "80–90%",
+    highlightLabel: "Efisiensi waktu telaah guru",
   },
   {
-    id: "rian",
-    name: "Rian Pratama",
-    grade: "Kelas 2A",
-    title: "Menanam Benih Tomat",
-    syllables: ["Be", "nih", "to", "mat", "di", "si", "ram", "se", "ti", "ap", "pa", "gi"],
-    candidatePhoneme: "Artikulasi Fonem Sengau /m/ & /n/ pada 'me-na-nam'",
-    candidateDesc: "Transisi suku kata terbuka-tertutup stabil tanpa pembalikan huruf /m/ dan /w/",
-    wordsPerMinute: 48,
-    initialAccuracy: 92,
+    id: "pos-decoding",
+    tabLabel: "Decoding Kata",
+    moduleTitle: "Gerbang Sandi Batu (Pos 3)",
+    stimulusLabel: "Contoh stimulus kata nyata & kata semu (pseudoword):",
+    syllables: ["ba", "tu", "•", "ro", "da", "•", "la", "to", "•", "ne", "ka"],
+    aiDraftTitle: "Observasi Decoding Fonotaktik Murni",
+    aiDraftDesc: "Mengamati kemampuan pengenalan bunyi suku kata tanpa bergantung pada hafalan visual semata.",
+    highlightMetric: "0.75x",
+    highlightLabel: "Pemutaran ulang audio lambat",
   },
   {
-    id: "zahra",
-    name: "Zahra Lestari",
-    grade: "Kelas 2B",
-    title: "Burung Pipit Bernyanyi",
-    syllables: ["Bu", "rung", "pi", "pit", "ber", "nya", "nyi", "ri", "ang"],
-    candidatePhoneme: "Gugus Konsonan /ny/ & /ng/ pada 'ber-nya-nyi'",
-    candidateDesc: "Konsonan nasal ganda terucap utuh; ritme intonasi kalimat deklaratif terjaga",
-    wordsPerMinute: 58,
-    initialAccuracy: 97,
+    id: "pos-fonologis",
+    tabLabel: "Susun Huruf Taktil",
+    moduleTitle: "Pohon Kelapa & Jejak Hutan (Pos 1–2)",
+    stimulusLabel: "Contoh ubin huruf interaktif tanpa tekanan angka skor:",
+    syllables: ["K", "E", "L", "A", "P", "A", "•", "H", "U", "T", "A", "N"],
+    aiDraftTitle: "Proteksi Kunci Akses Mode Siswa (PIN 4-Digit)",
+    aiDraftDesc: "Perangkat guru terkunci aman selama sesi berlangsung; maskot Piko otomatis sembunyi saat teks dibaca.",
+    highlightMetric: "100%",
+    highlightLabel: "Privasi rekaman berizin wali",
   },
 ];
 
@@ -59,7 +59,7 @@ const WAVE_BARS = [
 ];
 
 export default function LandingPage() {
-  const [selectedStudent, setSelectedStudent] = useState<StudentSample>(SAMPLES[0]);
+  const [selectedModule, setSelectedModule] = useState<ModulePreview>(MODULE_PREVIEWS[0]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTimeSec, setCurrentTimeSec] = useState(14);
   const [speed, setSpeed] = useState<"0.75x" | "1.0x">("1.0x");
@@ -123,8 +123,8 @@ export default function LandingPage() {
     };
   }, []);
 
-  function handleSelectStudent(student: StudentSample) {
-    setSelectedStudent(student);
+  function handleSelectModule(mod: ModulePreview) {
+    setSelectedModule(mod);
     setIsVerified(false);
     setCurrentTimeSec(14);
   }
@@ -156,7 +156,7 @@ export default function LandingPage() {
     }
   }
 
-  const activeSyllableIdx = Math.floor((currentTimeSec / 32) * selectedStudent.syllables.length);
+  const activeSyllableIdx = Math.floor((currentTimeSec / 32) * selectedModule.syllables.length);
   const activeWaveBarIdx = Math.floor((currentTimeSec / 32) * WAVE_BARS.length);
 
   return (
@@ -227,7 +227,7 @@ export default function LandingPage() {
 
           <div className="lp-pill-actions">
             <Link href="/masuk" className="lp-pill-btn-cta">
-              Ruang Guru
+              Login
             </Link>
           </div>
 
@@ -255,7 +255,7 @@ export default function LandingPage() {
 
               <div className="lp-hero-cta lp-anim-3">
                 <Link href="/masuk" className="lp-btn lp-btn-primary">
-                  Masuk ke Ruang Guru
+                  Login
                 </Link>
                 <a
                   href="#alur"
@@ -292,28 +292,28 @@ export default function LandingPage() {
               id="konsol"
               className="lp-console-stage lp-anim-6 lp-scroll-reveal"
               data-ui="true"
-              aria-label="Pratinjau Konsol Observasi Guru"
+              aria-label="Pratinjau Modul Sistem Dyscovery"
             >
               <div className="lp-console-head" data-ui="true">
-                <div className="lp-console-tabs" data-ui="true" role="tablist" aria-label="Pilih sampel siswa">
-                  {SAMPLES.map((s) => (
+                <div className="lp-console-tabs" data-ui="true" role="tablist" aria-label="Pilih modul fitur">
+                  {MODULE_PREVIEWS.map((mod) => (
                     <button
-                      key={s.id}
+                      key={mod.id}
                       type="button"
                       role="tab"
-                      aria-selected={selectedStudent.id === s.id}
-                      className={`lp-console-tab ${selectedStudent.id === s.id ? "active" : ""}`}
-                      onClick={() => handleSelectStudent(s)}
+                      aria-selected={selectedModule.id === mod.id}
+                      className={`lp-console-tab ${selectedModule.id === mod.id ? "active" : ""}`}
+                      onClick={() => handleSelectModule(mod)}
                       data-ui="true"
                     >
-                      {s.name} ({s.grade})
+                      {mod.tabLabel}
                     </button>
                   ))}
                 </div>
 
                 <div className="lp-console-badge" data-ui="true">
                   <span className="lp-pulse-indicator" data-ui="true" />
-                  <span>Sesi Observasi Aktif</span>
+                  <span>Pratinjau Modul</span>
                 </div>
               </div>
 
@@ -325,7 +325,7 @@ export default function LandingPage() {
                       type="button"
                       className="lp-play-btn"
                       onClick={togglePlay}
-                      aria-label={isPlaying ? "Jeda rekaman" : "Putar rekaman"}
+                      aria-label={isPlaying ? "Jeda simulasi" : "Putar simulasi"}
                       data-ui="true"
                     >
                       {isPlaying ? (
@@ -345,10 +345,10 @@ export default function LandingPage() {
                           00:{currentTimeSec < 10 ? `0${currentTimeSec}` : currentTimeSec} / 00:32
                         </span>
                         <span>•</span>
-                        <span>{selectedStudent.title}</span>
+                        <span>{selectedModule.moduleTitle}</span>
                       </div>
                       <span className="lp-audio-title" data-ui="true">
-                        {isPlaying ? "Memutar audio bacaan siswa..." : "Tekan putar untuk simulasi suara"}
+                        {isPlaying ? "Menjalankan simulasi sinkronisasi waveform..." : "Tekan putar untuk simulasi modul"}
                       </span>
                     </div>
                   </div>
@@ -401,10 +401,10 @@ export default function LandingPage() {
               {/* Synchronized Reading Stimulus Text */}
               <div className="lp-stimulus-box lp-anim-8" data-ui="true">
                 <span className="lp-stimulus-label" data-ui="true">
-                  Teks bacaan terverifikasi (Sinkronisasi audio membaca):
+                  {selectedModule.stimulusLabel}
                 </span>
                 <div className="lp-stimulus-text" data-ui="true">
-                  {selectedStudent.syllables.map((syl, idx) => (
+                  {selectedModule.syllables.map((syl, idx) => (
                     <span
                       key={idx}
                       className={`lp-syllable ${idx === activeSyllableIdx ? "highlight" : ""}`}
@@ -420,10 +420,10 @@ export default function LandingPage() {
               <div className="lp-candidate-card lp-anim-9" data-ui="true">
                 <div className="lp-candidate-info" data-ui="true">
                   <div className="lp-candidate-title" data-ui="true">
-                    Kandidat AI: {selectedStudent.candidatePhoneme}
+                    {selectedModule.aiDraftTitle}
                   </div>
                   <div className="lp-candidate-desc" data-ui="true">
-                    {selectedStudent.candidateDesc}
+                    {selectedModule.aiDraftDesc}
                   </div>
                 </div>
 
@@ -431,7 +431,7 @@ export default function LandingPage() {
                   {isVerified ? (
                     <span className="lp-candidate-btn verified" data-ui="true">
                       <Image src="/mascot/piko-cheer.png" alt="" width={22} height={22} />
-                      Diverifikasi Guru
+                      Terverifikasi Guru
                     </span>
                   ) : (
                     <button
@@ -440,7 +440,7 @@ export default function LandingPage() {
                       onClick={handleVerifyCandidate}
                       data-ui="true"
                     >
-                      Setujui Anotasi
+                      Simulasi Verifikasi
                     </button>
                   )}
                 </div>
@@ -450,18 +450,18 @@ export default function LandingPage() {
               <div className="lp-metrics-row lp-anim-10" data-ui="true">
                 <div className="lp-metric-card" data-ui="true">
                   <span className="lp-metric-num" data-ui="true">
-                    {selectedStudent.wordsPerMinute} KPM
+                    {selectedModule.highlightMetric}
                   </span>
                   <span className="lp-metric-label" data-ui="true">
-                    Kelancaran kata per menit kelas 2
+                    {selectedModule.highlightLabel}
                   </span>
                 </div>
                 <div className="lp-metric-card" data-ui="true">
                   <span className="lp-metric-num" data-ui="true">
-                    {isVerified ? selectedStudent.initialAccuracy + 2 : selectedStudent.initialAccuracy}%
+                    4 Pos
                   </span>
                   <span className="lp-metric-label" data-ui="true">
-                    Akurasi fonemik terverifikasi
+                    Misi petualangan literasi ramah anak
                   </span>
                 </div>
                 <div className="lp-metric-card" data-ui="true">
@@ -615,26 +615,26 @@ export default function LandingPage() {
                 <div className="lp-role-ui-fragment" data-ui="true">
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span className="lp-preview-tag" data-ui="true">
-                      Lembar Observasi Sesi #04
+                      Fitur Ruang Kerja Guru
                     </span>
                     <span style={{ fontSize: 13, color: "var(--lp-emerald)", fontWeight: 700 }}>
-                      Terverifikasi Guru
+                      Kendali Penuh Pendidik
                     </span>
                   </div>
 
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     <div style={{ fontWeight: 800, color: "var(--lp-ink)" }}>
-                      Nadia Safitri • Kelas 2C (Membaca Mandiri)
+                      Panel Telaah Split-View & Kunci Akses Sesi
                     </div>
                     <div style={{ color: "var(--lp-muted)", fontSize: 13 }}>
-                      Catatan: Siswa membaca lancar pada suku kata terbuka dan tertutup; artikulasi fonem /p/ dan /t/ terverifikasi mandiri.
+                      Dilengkapi pemutar audio lambat 0.75x, draf anotasi fonem otomatis, serta penguncian PIN 4-digit saat perangkat digunakan di kelas.
                     </div>
                   </div>
 
                   <div style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13, fontWeight: 700 }}>
-                    <span style={{ color: "var(--lp-primary)" }}>Kelancaran: 54 KPM</span>
+                    <span style={{ color: "var(--lp-primary)" }}>PIN Akses Terkunci</span>
                     <span>•</span>
-                    <span style={{ color: "var(--lp-emerald)" }}>Akurasi: 95%</span>
+                    <span style={{ color: "var(--lp-emerald)" }}>Verifikasi Manual & AI</span>
                   </div>
                 </div>
               </article>
@@ -743,11 +743,11 @@ export default function LandingPage() {
               dengan bukti nyata.
             </h2>
             <p>
-              Akun guru diverifikasi langsung oleh operator sekolah untuk melindungi privasi dan integritas data seluruh
+              Akun pengguna diverifikasi langsung oleh operator sekolah untuk melindungi privasi dan integritas data seluruh
               siswa.
             </p>
             <Link href="/masuk" className="lp-btn lp-btn-primary">
-              Masuk sebagai guru
+              Login
             </Link>
           </div>
         </section>
@@ -775,7 +775,7 @@ export default function LandingPage() {
                 <a href="#etika" onClick={(e) => handleSmoothScroll(e, "etika")}>Prinsip Etis</a>
               </li>
               <li>
-                <Link href="/masuk">Ruang Guru</Link>
+                <Link href="/masuk">Login</Link>
               </li>
             </ul>
           </div>
