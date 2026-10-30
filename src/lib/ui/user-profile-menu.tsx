@@ -51,7 +51,7 @@ export function UserProfileMenu() {
       const dn = res.data.profile?.display_name || fn.split(" ")[0] || "Guru";
       const em = res.data.email || "guru@sekolah.sch.id";
       const av = res.data.avatarUrl || null;
-      const rl = res.data.profile?.product_role === "teacher" ? "Guru Kelas 2A" : "Tenaga Pendidik";
+      const rl = ({ teacher: "Guru Kelas 2A", guardian: "Orang Tua / Wali", psychologist: "Psikolog Mitra", operator: "Operator Sekolah" } as Record<string, string>)[res.data.profile?.product_role ?? ""] ?? "Pengguna";
 
       setUser({ email: em, fullName: fn, displayName: dn, avatarUrl: av, role: rl });
       setFormFullName(fn);

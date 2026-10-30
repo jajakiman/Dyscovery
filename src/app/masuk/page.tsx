@@ -7,9 +7,13 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/ui/api";
 
 type Step = "checking" | "login" | "register" | "forgot" | "reset" | "onboarding";
+type Profile = { needsOnboarding?: boolean; suggestedName?: string | null; profile?: { product_role?: string | null } };
+
+const homeFor = (role?: string | null) =>
+  role === "operator" ? "/operator" : role === "guardian" || role === "psychologist" ? "/orangtua/laporan" : "/guru/siswa";
 
 const titles: Record<Exclude<Step, "checking">, string> = {
-  login: "Masuk akun guru",
+  login: "Masuk ke Dyscovery",
   register: "Daftar akun",
   forgot: "Lupa kata sandi",
   reset: "Atur ulang kata sandi",
@@ -19,7 +23,7 @@ const titles: Record<Exclude<Step, "checking">, string> = {
 function EmailField() {
   return (
     <div className="field">
-      <label htmlFor="email">Email / NIP</label>
+      <label htmlFor="email">Email</label>
       <span className="input-icon">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="3" y="5" width="18" height="14" rx="2" />
@@ -30,7 +34,7 @@ function EmailField() {
           name="email"
           type="email"
           autoComplete="username"
-          placeholder="nama@sekolah.sch.id"
+          placeholder="nama@email.com"
           maxLength={254}
           required
         />
@@ -94,7 +98,7 @@ export default function LoginPage() {
   useEffect(() => {
     let alive = true;
     const resetting = new URLSearchParams(window.location.search).has("reset");
-    void api<{ needsOnboarding?: boolean; suggestedName?: string | null }>("/api/auth/profile").then((result) => {
+    void api<Profile>("/api/auth/profile").then((result) => {
       if (!alive) return;
       if (!result.ok) return setStep("login");
       if (resetting) return setStep("reset");
@@ -102,12 +106,22 @@ export default function LoginPage() {
         setSuggested(result.data.suggestedName ?? "");
         return setStep("onboarding");
       }
-      router.replace("/guru/siswa");
+      router.replace(homeFor(result.data.profile?.product_role));
     });
     return () => {
       alive = false;
     };
   }, [router]);
+
+  async function enterHome() {
+    const result = await api<Profile>("/api/auth/profile");
+    if (result.ok && result.data.needsOnboarding) {
+      setSuggested(result.data.suggestedName ?? "");
+      setBusy(false);
+      return setStep("onboarding");
+    }
+    router.replace(homeFor(result.data.profile?.product_role));
+  }
 
   function go(next: Step) {
     setStep(next);
@@ -138,7 +152,7 @@ export default function LoginPage() {
     setInfo("");
     if (step === "login") {
       const result = await api("/api/auth/login", { email, password });
-      if (result.ok) return router.replace("/guru/siswa");
+      if (result.ok) return enterHome();
       setError(result.data.error ?? "Login gagal. Periksa email dan kata sandi Anda.");
     } else if (step === "register") {
       const result = await api<{ message?: string }>("/api/auth/register", { email, password });
@@ -152,7 +166,7 @@ export default function LoginPage() {
       else setError(result.data.error ?? "Permintaan gagal.");
     } else if (step === "reset") {
       const result = await api("/api/auth/reset", { password });
-      if (result.ok) return router.replace("/guru/siswa");
+      if (result.ok) return enterHome();
       setError(result.data.error ?? "Kata sandi belum dapat diperbarui.");
     }
     setBusy(false);
@@ -169,7 +183,7 @@ export default function LoginPage() {
       nip: data.get("nip") || null,
       confirmed: data.get("confirmed") === "on",
     });
-    if (result.ok) return router.replace("/guru/siswa");
+    if (result.ok) return enterHome();
     setError(result.data.error ?? "Data belum dapat disimpan.");
     setBusy(false);
   }
@@ -208,9 +222,14 @@ export default function LoginPage() {
 
           {(step === "login" || step === "register" || step === "forgot" || step === "reset") && (
             <>
+              {step === "login" && (
+                <p className="login-lead">
+                  Masuk dengan akun terdaftar Anda. Ruang kerja dibuka sesuai peran akun.
+                </p>
+              )}
               {step === "register" && (
                 <p className="login-lead">
-                  Mendaftar belum memberi akses guru. Operator sekolah yang memverifikasi akun Anda.
+                  Mendaftar belum memberi akses. Peran akun Anda ditetapkan dan diverifikasi oleh sekolah.
                 </p>
               )}
               {step === "forgot" && (
@@ -284,7 +303,7 @@ export default function LoginPage() {
 
           {step === "onboarding" && (
             <form onSubmit={(event) => void onboard(event)}>
-              <p className="login-lead">Langkah sekali jalan. Ini bukan verifikasi profesi guru dan bukan persetujuan wali.</p>
+              <p className="login-lead">Langkah sekali jalan untuk melengkapi profil akun Anda.</p>
               <div className="field">
                 <label htmlFor="fullName">Nama lengkap</label>
                 <span className="input-icon">
@@ -318,7 +337,7 @@ export default function LoginPage() {
           )}
 
           <p className="login-disclaimer-note" style={{ textAlign: "center", fontSize: 13, color: "var(--muted)", marginTop: 24 }}>
-            Dyscovery mendukung observasi guru dan bukan alat diagnosis klinis.
+            Dyscovery mendukung observasi membaca dan bukan alat diagnosis klinis.
           </p>
         </div>
       </section>
