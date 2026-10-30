@@ -30,19 +30,17 @@ globalThis.__aiEndpointMockClient = {
   },
   from(table) {
     assert.ok(table);
-    return {
-      select() {
-        return {
-          eq() {
-            return {
-              async order() {
-                return { data: [{ id: 'mock-ai-analysis-id', status: 'completed' }], error: null };
-              },
-            };
-          },
-        };
+    const chain = {
+      select() { return chain; },
+      eq() { return chain; },
+      async order() {
+        return { data: [{ id: 'mock-ai-analysis-id', status: 'completed' }], error: null };
+      },
+      single() {
+        return Promise.resolve({ data: { id: 'mock-id' }, error: null });
       },
     };
+    return chain;
   },
 };
 
