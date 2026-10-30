@@ -30,10 +30,10 @@ export default function StudentRoster() {
   const refresh = useCallback(async () => {
     setLoad("loading");
     const mode = await api<{ mode?: string }>("/api/teacher-mode/status");
-    if (mode.status === 401) return router.replace("/");
+    if (mode.status === 401) return router.replace("/masuk");
     if (mode.data.mode === "student" || mode.data.mode === "locked") return router.replace("/siswa");
     const [kids, sess, asg, mat] = await Promise.all([api<{ children?: Child[] }>("/api/children"), api<{ sessions?: Session[] }>("/api/assessment-sessions"), api<{ assignments?: Assignment[] }>("/api/assignments"), api<{ materials?: Material[] }>("/api/materials")]);
-    if (kids.status === 401) return router.replace("/");
+    if (kids.status === 401) return router.replace("/masuk");
     if (kids.status === 403) return setLoad("forbidden");
     if (!kids.ok || !sess.ok || !asg.ok || !mat.ok) return setLoad("error");
     setChildren(kids.data.children ?? []);
@@ -55,6 +55,7 @@ export default function StudentRoster() {
 
   async function enter(sessionId: string) {
     setBusy(true); setMessage("");
+    if (drafts(picked?.id ?? "").find((s) => s.id === sessionId)?.status === "draft") await api(`/api/assessment-sessions/${sessionId}/start`, {});
     const result = await api("/api/teacher-mode/enter", { sessionId });
     if (result.ok) return router.replace("/siswa");
     if (result.status === 403) {
@@ -97,7 +98,7 @@ export default function StudentRoster() {
         </div>
         <nav className="nav" aria-label="Menu guru"><a href="/guru/siswa" aria-current="page">Daftar siswa</a></nav>
         <div className="sidebar-bottom">
-          <button className="btn secondary" onClick={async () => { await api("/api/auth/logout", {}); router.replace("/"); }}>Keluar</button>
+          <button className="btn secondary" onClick={async () => { await api("/api/auth/logout", {}); router.replace("/masuk"); }}>Keluar</button>
         </div>
       </aside>
       <main className="workspace">

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/ui/api";
 import { Modal } from "@/lib/ui/modal";
 import { Practice } from "@/app/auth/mode-test/practice";
+import { Reading } from "./reading";
 
 type Mode = "checking" | "student" | "locked";
 
@@ -14,12 +15,13 @@ export default function StudentMode() {
   const [mode, setMode] = useState<Mode>("checking");
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [reading, setReading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const check = async () => {
       const result = await api<{ mode?: string }>("/api/teacher-mode/status");
-      if (result.status === 401) return router.replace("/");
+      if (result.status === 401) return router.replace("/masuk");
       if (result.data.mode === "teacher") return router.replace("/guru/siswa");
       setMode(result.data.mode === "student" ? "student" : "locked");
     };
@@ -47,10 +49,10 @@ export default function StudentMode() {
       <main className="student-main">
         {mode === "checking" && <p role="status">Memeriksa mode…</p>}
         {mode !== "checking" && <>
-          <Image className="piko" src={mode === "student" ? "/mascot/piko-wave.svg" : "/mascot/piko-rest.svg"} alt="" width={160} height={165} />
+          {!reading && <Image className="piko" src={mode === "student" ? "/mascot/piko-wave.svg" : "/mascot/piko-rest.svg"} alt="" width={160} height={165} />}
           <h1>{mode === "student" ? "Halo! Ayo berlatih membaca." : "Sesi ini belum bisa dilanjutkan."}</h1>
           {mode === "locked" && <p className="notice warn">Waktu sesi habis atau izin berubah. Panggil guru untuk melanjutkan.</p>}
-          {mode === "student" && <section className="reading-card reading" aria-label="Latihan"><Practice /></section>}
+          {mode === "student" && <section className="reading-card reading" aria-label="Latihan"><Reading onReadingChange={setReading} fallback={<Practice />} /></section>}
         </>}
       </main>
       <footer className="student-bottom">
