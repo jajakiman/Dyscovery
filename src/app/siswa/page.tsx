@@ -95,8 +95,10 @@ export default function StudentMode() {
       </footer>
 
       <Modal open={asking} onClose={() => setAsking(false)} titleId="unlock-title">
-        <h2 id="unlock-title">Keluar Mode Siswa</h2>
-        <p className="muted small" style={{ marginBottom: 16 }}>Kembali ke ruang guru dan hentikan sesi membaca siswa.</p>
+        <div style={{ textAlign: "center", display: "grid", gap: 8, justifyItems: "center" }}>
+          <h2 id="unlock-title">Keluar Mode Siswa</h2>
+          <p className="muted small" style={{ marginBottom: 8 }}>Kembali ke ruang guru dan hentikan sesi membaca siswa.</p>
+        </div>
         {error && <p className="notice error" role="alert" style={{ marginBottom: 16 }}>{error}</p>}
         <div className="modal-actions" style={{ marginTop: 20 }}>
           <button type="button" className="btn secondary" onClick={() => setAsking(false)}>Batal</button>

@@ -52,7 +52,7 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 .check { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; margin-bottom: 16px; }
 .check input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--ink); flex: none; }
 
-.notice { padding: 12px 16px; border-radius: var(--radius-control); background: var(--soft); color: var(--ink); font-size: 14px; }
+.notice { padding: 12px 16px; border-radius: var(--radius-control); background: var(--soft); color: var(--ink); font-size: 14px; text-align: center; }
 .notice.error { background: var(--danger-bg); color: var(--danger); }
 .notice.ok { background: var(--green-bg); color: var(--green); }
 .notice.warn { background: var(--apricot-soft); color: #6e4210; }
@@ -212,10 +212,10 @@ tbody tr:hover { background: var(--paper); }
 .table-foot { padding: 12px 20px 20px; }
 
 /* Modal */
-dialog { border: 0; border-radius: var(--radius-card); padding: 0; width: 600px; max-width: calc(100vw - 32px); color: var(--text); box-shadow: 0 24px 100px #142d4650; }
-dialog::backdrop { background: #142b4566; }
+dialog { position: fixed; inset: 0; margin: auto !important; height: fit-content; max-height: calc(100dvh - 32px); overflow-y: auto; border: 0; border-radius: var(--radius-card); padding: 0; width: 600px; max-width: calc(100vw - 32px); background: var(--white); color: var(--text); box-shadow: 0 24px 100px #142d4650; }
+dialog::backdrop { background: #142b4566; backdrop-filter: blur(2px); }
 .modal-body { padding: 32px; display: grid; gap: 16px; }
-.modal-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; }
+.modal-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
 .btn.danger { background: var(--danger); color: var(--white); }
 .btn-logout { transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease; }
 .btn-logout:hover { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); filter: none !important; }

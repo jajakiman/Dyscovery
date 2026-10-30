@@ -10,5 +10,14 @@ export function Modal({ open, onClose, titleId, children }: { open: boolean; onC
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
   }, [open]);
-  return <dialog ref={ref} aria-labelledby={titleId} onClose={onClose}>{open && <div className="modal-body">{children}</div>}</dialog>;
+  return (
+    <dialog
+      ref={ref}
+      aria-labelledby={titleId}
+      onClose={onClose}
+      style={{ margin: "auto", inset: 0, position: "fixed" }}
+    >
+      {open && <div className="modal-body">{children}</div>}
+    </dialog>
+  );
 }
