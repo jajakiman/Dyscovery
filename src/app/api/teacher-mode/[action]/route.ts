@@ -30,17 +30,21 @@ export async function POST(request: Request, context: { params: Promise<{ action
     if (action === "enter") {
       if (!body || typeof body.sessionId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.sessionId)) throw new Error();
       sessionId = body.sessionId;
-    } else pin = teacherPin(body);
+    } else if (action === "unlock") {
+      pin = typeof body?.pin === "string" ? body.pin : "";
+    } else {
+      pin = teacherPin(body);
+    }
   } catch {
-    return json({ error: "PIN atau ID sesi tidak valid." }, 400);
+    return json({ error: "Parameter aksi tidak valid." }, 400);
   }
   const supabase = await createClient();
   const user = await supabase.auth.getUser();
   if (user.error || !user.data.user) return json({ error: "Silakan login." }, 401);
   const result = action === "enter" ? await supabase.rpc("enter_student_mode", { p_session_id: sessionId })
     : action === "pin" ? await supabase.rpc("set_teacher_pin", { p_pin: pin })
-    : await supabase.rpc("unlock_teacher_mode", { p_pin: pin });
+    : await supabase.rpc("unlock_teacher_mode", { p_pin: pin || null });
   if (result.error) return json({ error: "Operasi ditolak atau tidak tersedia." }, result.error.code === "42501" || result.error.code === "22023" ? 403 : 503);
-  if (action === "unlock" && !result.data?.ok) return json({ error: "PIN salah atau akses terkunci sementara." }, 403);
+  if (action === "unlock" && !result.data?.ok) return json({ error: "Gagal membuka mode guru." }, 403);
   return json(action === "unlock" ? result.data : { ok: true });
 }

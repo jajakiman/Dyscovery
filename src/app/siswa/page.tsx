@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/ui/api";
 import { Modal } from "@/lib/ui/modal";
@@ -35,15 +35,12 @@ export default function StudentMode() {
     };
   }, [router]);
 
-  async function unlock(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const pin = new FormData(event.currentTarget).get("pin");
-    event.currentTarget.reset();
+  async function unlock() {
     setBusy(true);
     setError("");
-    const result = await api("/api/teacher-mode/unlock", { pin });
+    const result = await api("/api/teacher-mode/unlock", {});
     if (result.ok) return router.replace("/guru/siswa");
-    setError(result.data.error ?? "PIN tidak diterima.");
+    setError(result.data.error ?? "Gagal membuka mode guru.");
     setBusy(false);
   }
 
@@ -99,30 +96,14 @@ export default function StudentMode() {
 
       <Modal open={asking} onClose={() => setAsking(false)} titleId="unlock-title">
         <h2 id="unlock-title">Keluar Mode Siswa</h2>
-        <p className="muted small" style={{ marginBottom: 16 }}>Masukkan PIN guru (4 digit) untuk membuka kembali kontrol guru.</p>
-        <form onSubmit={(event) => void unlock(event)}>
-          <div className="field">
-            <label htmlFor="unlock-pin">PIN guru</label>
-            <input
-              className="pin-input"
-              id="unlock-pin"
-              name="pin"
-              type="password"
-              inputMode="numeric"
-              pattern="[0-9]{4,6}"
-              minLength={4}
-              maxLength={6}
-              placeholder="• • • •"
-              autoComplete="off"
-              required
-            />
-          </div>
-          {error && <p className="notice error" role="alert" style={{ marginBottom: 16 }}>{error}</p>}
-          <div className="modal-actions">
-            <button type="button" className="btn secondary" onClick={() => setAsking(false)}>Batal</button>
-            <button className="btn primary" type="submit" disabled={busy}>{busy ? "Memeriksa…" : "Buka mode guru"}</button>
-          </div>
-        </form>
+        <p className="muted small" style={{ marginBottom: 16 }}>Kembali ke ruang guru dan hentikan sesi membaca siswa.</p>
+        {error && <p className="notice error" role="alert" style={{ marginBottom: 16 }}>{error}</p>}
+        <div className="modal-actions" style={{ marginTop: 20 }}>
+          <button type="button" className="btn secondary" onClick={() => setAsking(false)}>Batal</button>
+          <button className="btn primary" type="button" disabled={busy} onClick={() => void unlock()}>
+            {busy ? "Membuka…" : "Kembali ke Ruang Guru"}
+          </button>
+        </div>
       </Modal>
     </div>
   );

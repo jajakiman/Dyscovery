@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/ui/api";
 import { LogoutButton } from "@/lib/ui/logout-button";
@@ -50,13 +50,10 @@ export default function StudentRoster() {
   const [picked, setPicked] = useState<Child | null>(null);
   const [selectedMaterialId, setSelectedMaterialId] = useState<string>("");
   const [lockModalOpen, setLockModalOpen] = useState(false);
-  const [needPin, setNeedPin] = useState(false);
-  const [pinDigits, setPinDigits] = useState(["4", "8", "2", "6"]);
   const [micTesting, setMicTesting] = useState(false);
   const [micLevel, setMicLevel] = useState(85);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const [name, setName] = useState("");
   const [demo, setDemo] = useState<null | "empty" | "forbidden" | "error">(null);
 
   const refresh = useCallback(async () => {
@@ -73,8 +70,6 @@ export default function StudentRoster() {
     ]);
 
     if (kids.status === 401) return router.replace("/masuk");
-    const me = await api<{ profile?: { full_name?: string | null; display_name?: string | null } }>("/api/auth/profile");
-    setName(me.data?.profile?.display_name || me.data?.profile?.full_name || "");
     const realKids = kids.ok ? kids.data?.children ?? [] : [];
     if (realKids.length === 0) {
       setDemo(kids.status === 403 ? "forbidden" : kids.ok && sess.ok ? "empty" : "error");
@@ -121,7 +116,6 @@ export default function StudentRoster() {
 
   function openSelect(child: Child) {
     setPicked(child);
-    setNeedPin(false);
     setMessage("");
   }
 
@@ -172,32 +166,8 @@ export default function StudentRoster() {
       setLockModalOpen(false);
       return router.replace("/siswa");
     }
-    if (result.status === 403) {
-      setNeedPin(true);
-      setMessage("Mode siswa belum bisa dimulai. Jika ini pertama kali, buat PIN dulu.");
-    } else {
-      setMessage(result.data.error ?? "Mode siswa tidak dapat dimulai.");
-    }
+    setMessage(result.data.error ?? "Mode siswa tidak dapat dimulai.");
     setBusy(false);
-  }
-
-  async function createPin(event: FormEvent<HTMLFormElement>, sessionId: string) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const pin = String(data.get("pin") ?? "");
-    const again = String(data.get("again") ?? "");
-    if (pin !== again) {
-      setMessage("Kedua PIN harus sama.");
-      return;
-    }
-    setBusy(true);
-    const result = await api("/api/teacher-mode/pin", { pin });
-    if (!result.ok) {
-      setMessage("PIN tidak dapat dibuat. Hubungi operator sekolah untuk pemulihan.");
-      setBusy(false);
-      return;
-    }
-    await enter(sessionId);
   }
 
   const countBy = (status: string) => sessions.filter((s) => s.status === status).length;
@@ -442,7 +412,7 @@ export default function StudentRoster() {
             </div>
             <h2 id="lock-modal-title" className="lock-modal-title">Kunci mode siswa</h2>
             <p className="lock-modal-desc">
-              Simpan PIN ini. Siswa tidak boleh melihatnya. Setelah perangkat dikunci, hanya guru yang dapat membuka kembali dengan PIN ini.
+              Perangkat akan masuk ke Mode Siswa untuk sesi membaca. Siswa didampingi guru selama kegiatan tanpa skor atau angka yang menekan anak.
             </p>
 
             {demo && (
@@ -456,35 +426,10 @@ export default function StudentRoster() {
               </div>
             )}
 
-            {/* 4-digit PIN representation matching Frame 17 */}
-            <div className="pin-digits-display" aria-label="PIN guru 4 digit">
-              {pinDigits.map((d, i) => (
-                <span key={i} className="pin-digit-box">{d}</span>
-              ))}
+            <div className="guide-tray" style={{ fontSize: 13, margin: "12px 0 16px" }}>
+              <p><strong>Siswa:</strong> {picked.display_name} • Kelas {picked.grade}</p>
+              <p style={{ marginTop: 4 }}>Guru dapat kembali ke dasbor guru kapan pun dengan menekan tombol <em>Keluar Mode Siswa</em> tanpa perlu PIN.</p>
             </div>
-
-            <p className="pin-sub-meta">
-              PIN contoh • {picked.display_name} • Kelas {picked.grade}
-            </p>
-
-            <div className="guide-tray" style={{ fontSize: 13, margin: "8px 0 16px" }}>
-              <p>PIN diperlukan untuk keluar, meminta bantuan, atau membuka kembali dasbor guru.</p>
-            </div>
-
-            {needPin && target && (
-              <form className="modal-section" onSubmit={(event) => void createPin(event, target.id)}>
-                <h3>Buat PIN guru (4-6 digit)</h3>
-                <div className="field">
-                  <label htmlFor="modal-pin">PIN</label>
-                  <input className="pin-input" id="modal-pin" name="pin" type="password" inputMode="numeric" minLength={4} maxLength={6} required />
-                </div>
-                <div className="field">
-                  <label htmlFor="modal-again">Ulangi PIN</label>
-                  <input className="pin-input" id="modal-again" name="again" type="password" inputMode="numeric" minLength={4} maxLength={6} required />
-                </div>
-                <button className="btn primary" type="submit" disabled={busy}>Simpan PIN dan Kunci</button>
-              </form>
-            )}
 
             {message && <p className="notice warn" role="alert">{message}</p>}
 
@@ -502,7 +447,7 @@ export default function StudentRoster() {
                   else router.replace("/siswa");
                 }}
               >
-                {busy ? "Memproses…" : "Saya sudah simpan PIN"}
+                {busy ? "Memproses…" : "Mulai Mode Siswa"}
               </button>
             </div>
           </div>

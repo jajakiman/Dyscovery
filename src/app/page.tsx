@@ -355,16 +355,13 @@ export default function LandingPage() {
                     Izin Observasi Aktif
                   </span>
                   <div style={{ color: "var(--lp-muted)" }}>
-                    PIN Kunci Layar Siswa (Mencegah keluar alur):
+                    Proteksi Layar Siswa:
                   </div>
-                  <div className="lp-preview-pin" data-ui="true">
-                    <span className="lp-pin-box" data-ui="true">8</span>
-                    <span className="lp-pin-box" data-ui="true">3</span>
-                    <span className="lp-pin-box" data-ui="true">1</span>
-                    <span className="lp-pin-box" data-ui="true">5</span>
+                  <div style={{ color: "var(--lp-text)", fontWeight: 700, margin: "6px 0" }}>
+                    Fokus belajar tanpa distraksi luar
                   </div>
                   <div style={{ color: "var(--lp-muted)", marginTop: 4 }}>
-                    Sesi terlindungi dalam ruang kelas tanpa distraksi web luar.
+                    Sesi terlindungi dalam ruang kelas tanpa perlu akun atau PIN siswa.
                   </div>
                 </div>
               </article>
