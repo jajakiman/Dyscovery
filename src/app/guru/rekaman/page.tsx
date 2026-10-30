@@ -284,8 +284,6 @@ function TeacherRecordingReviewContent() {
           <Link href="/guru/siswa">Daftar siswa</Link>
           <Link href="/guru/rekaman" aria-current="page">Tinjau rekaman</Link>
           <Link href="/guru/laporan">Laporan observasi</Link>
-          <Link href="/operator">Ruang operator</Link>
-          <Link href="/orangtua/laporan">Portal orang tua</Link>
         </nav>
         <div className="sidebar-notice">
           <p className="sidebar-notice-title">Privasi siswa</p>

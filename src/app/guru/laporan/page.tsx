@@ -117,8 +117,6 @@ function ObservationReportDraftContent() {
           <Link href="/guru/siswa">Daftar siswa</Link>
           <Link href="/guru/rekaman">Tinjau rekaman</Link>
           <Link href="/guru/laporan" aria-current="page">Laporan observasi</Link>
-          <Link href="/operator">Ruang operator</Link>
-          <Link href="/orangtua/laporan">Portal orang tua</Link>
         </nav>
         <div className="sidebar-notice">
           <p className="sidebar-notice-title">Privasi siswa</p>

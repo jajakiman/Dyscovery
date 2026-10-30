@@ -5,12 +5,10 @@ import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/ui/api";
+import { homeFor } from "@/lib/auth/role-home";
 
 type Step = "checking" | "login" | "register" | "forgot" | "reset" | "onboarding";
 type Profile = { needsOnboarding?: boolean; suggestedName?: string | null; profile?: { product_role?: string | null } };
-
-const homeFor = (role?: string | null) =>
-  role === "operator" ? "/operator" : role === "guardian" || role === "psychologist" ? "/orangtua/laporan" : "/guru/siswa";
 
 const titles: Record<Exclude<Step, "checking">, string> = {
   login: "Masuk ke Dyscovery",

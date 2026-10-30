@@ -196,8 +196,6 @@ export default function StudentRoster() {
           <Link href="/guru/siswa" aria-current="page">Daftar siswa</Link>
           <Link href="/guru/rekaman">Tinjau rekaman</Link>
           <Link href="/guru/laporan">Laporan observasi</Link>
-          <Link href="/operator">Ruang operator</Link>
-          <Link href="/orangtua/laporan">Portal orang tua</Link>
         </nav>
         <div className="sidebar-notice">
           <p className="sidebar-notice-title">Privasi siswa</p>

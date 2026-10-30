@@ -145,8 +145,6 @@ function GuardianReportAndDirectoryContent() {
         </div>
         <nav className="nav" aria-label="Menu orang tua">
           <Link href="/orangtua/laporan" aria-current="page">Laporan observasi</Link>
-          <Link href="/guru/siswa">Ruang guru</Link>
-          <Link href="/operator">Ruang operator</Link>
         </nav>
         <div className="sidebar-notice">
           <p className="sidebar-notice-title">Keluarga & Privasi</p>

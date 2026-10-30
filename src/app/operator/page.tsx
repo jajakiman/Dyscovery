@@ -122,8 +122,6 @@ function OperatorDashboardContent() {
         </div>
         <nav className="nav" aria-label="Menu operator">
           <Link href="/operator" aria-current="page">Manajemen siswa</Link>
-          <Link href="/guru/siswa">Ruang guru</Link>
-          <Link href="/orangtua/laporan">Portal orang tua</Link>
         </nav>
         <div className="sidebar-notice">
           <p className="sidebar-notice-title">Keamanan Data Sekolah</p>
@@ -145,15 +143,8 @@ function OperatorDashboardContent() {
 
         {/* Page Heading */}
         <div className="page-heading" style={{ marginTop: 8 }}>
-          <div className="heading-split">
-            <div>
-              <h1>Dasbor Operator Sekolah</h1>
-              <p className="muted">Integrasi data siswa ter-seed, penugasan guru kelas, dan verifikasi izin orang tua</p>
-            </div>
-            <Link href="/guru/siswa" className="btn primary" style={{ minHeight: 44, padding: "8px 20px" }}>
-              Buka Ruang Guru
-            </Link>
-          </div>
+          <h1>Dasbor Operator Sekolah</h1>
+          <p className="muted">Data siswa, penugasan guru kelas, dan status izin orang tua</p>
         </div>
 
         {/* Statistics Cards */}
@@ -227,7 +218,6 @@ function OperatorDashboardContent() {
                   <th scope="col">Guru Pendamping</th>
                   <th scope="col">Izin Wali Murid</th>
                   <th scope="col">Status Sesi</th>
-                  <th scope="col" style={{ textAlign: "right" }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -265,15 +255,6 @@ function OperatorDashboardContent() {
                       ) : (
                         <span className="badge">Siap Dimulai</span>
                       )}
-                    </td>
-                    <td style={{ textAlign: "right" }}>
-                      <Link
-                        href="/guru/siswa"
-                        className="btn secondary"
-                        style={{ minHeight: 36, padding: "4px 14px", fontSize: 13 }}
-                      >
-                        Mulai Sesi
-                      </Link>
                     </td>
                   </tr>
                 ))}
