@@ -8,6 +8,10 @@ const reading = Andika({ subsets: ["latin"], weight: ["400", "700"], variable: "
 export const metadata: Metadata = {
   title: "Dyscovery",
   description: "Ruang guru untuk mendampingi sesi membaca, meninjau observasi, dan menemukan dukungan bagi anak.",
+  icons: {
+    icon: [{ url: "/brand/favicon.ico", sizes: "any" }, { url: "/brand/favicon.svg", type: "image/svg+xml" }],
+    apple: "/brand/icon-192.png",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

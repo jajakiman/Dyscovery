@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/ui/api";
+import { LogoutButton } from "@/lib/ui/logout-button";
 import { Modal } from "@/lib/ui/modal";
 
 type Child = { id: string; display_name: string; grade: string };
@@ -140,7 +141,7 @@ export default function StudentRoster() {
           <p className="sidebar-notice-text">Rekaman hanya untuk peninjauan guru.</p>
         </div>
         <div className="sidebar-bottom">
-          <button className="btn secondary" onClick={async () => { await api("/api/auth/logout", {}); router.replace("/masuk"); }}>Keluar</button>
+          <LogoutButton />
         </div>
       </aside>
       <main className="workspace">

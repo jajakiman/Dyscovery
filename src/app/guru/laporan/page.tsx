@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/ui/api";
+import { LogoutButton } from "@/lib/ui/logout-button";
 
 type Session = { id: string; child_id: string; status: string; created_at: string };
 type Child = { id: string; display_name: string; grade: string };
@@ -118,16 +119,7 @@ function ObservationReportDraftContent() {
           <p className="sidebar-notice-text">Rekaman hanya untuk peninjauan guru.</p>
         </div>
         <div className="sidebar-bottom">
-          <button
-            type="button"
-            className="btn secondary"
-            onClick={async () => {
-              await api("/api/auth/logout", {});
-              router.replace("/masuk");
-            }}
-          >
-            Keluar
-          </button>
+          <LogoutButton />
         </div>
       </aside>
 

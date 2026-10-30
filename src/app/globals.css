@@ -216,6 +216,13 @@ dialog { border: 0; border-radius: var(--radius-card); padding: 0; width: 600px;
 dialog::backdrop { background: #142b4566; }
 .modal-body { padding: 32px; display: grid; gap: 16px; }
 .modal-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; }
+.btn.danger { background: var(--danger); color: var(--white); }
+.btn-logout { transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease; }
+.btn-logout:hover { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); filter: none !important; }
+.logout-modal { display: grid; justify-items: center; gap: 12px; text-align: center; }
+.logout-modal img { width: 120px; height: auto; }
+.logout-modal h2, .logout-modal p { margin: 0; }
+.logout-modal .modal-actions { justify-content: center; margin-top: 8px; }
 .modal-section { padding: 16px; background: var(--paper); border-radius: 16px; }
 
 /* Student mode layout & prototype presets (S01-S07) */
