@@ -130,7 +130,11 @@ export default function LoginPage() {
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
         </Link>
         <div className="login-card">
-          {step === "checking" && <p role="status">Memeriksa sesi login…</p>}
+          {step === "checking" && <div className="login-loading" role="status">
+            <Image src="/mascot/piko-listen.svg" alt="" width={140} height={144} priority />
+            <span className="login-progress" aria-hidden="true"><i /></span>
+            <p>Piko sedang memeriksa sesi login…</p>
+          </div>}
           {step !== "checking" && <h1 className="login-title">{titles[step]}</h1>}
 
           {(step === "login" || step === "register" || step === "forgot" || step === "reset") && <>

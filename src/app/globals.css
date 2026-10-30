@@ -91,6 +91,12 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 .login-google { justify-self: center; width: 60px; height: 60px; display: grid; place-items: center; border-radius: 50%; background: var(--white); border: 1.5px solid #dee2e4; box-shadow: 0 2px 6px #24476a12; }
 .login-google:hover:not(:disabled) { background: var(--paper); }
 .login-foot { text-align: center; font-size: 14px; color: var(--muted); margin: 0; }
+.login-loading { display: grid; justify-items: center; gap: 20px; text-align: center; color: var(--muted); font-weight: 600; }
+.login-loading img { width: 140px; height: auto; }
+.login-loading p { margin: 0; }
+.login-progress { width: 220px; height: 8px; border-radius: 4px; background: var(--apricot-soft); overflow: hidden; }
+.login-progress i { display: block; width: 40%; height: 100%; border-radius: 4px; background: var(--apricot); animation: login-progress 1.2s ease-in-out infinite; }
+@keyframes login-progress { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
 .login-lead { text-align: center; font-size: 14px; color: var(--muted); margin: -8px 0 8px; }
 .login-link { min-height: 44px; padding: 0 4px; color: var(--focus); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .login-forgot { display: block; margin: -8px 0 0 auto; font-size: 14px; }
