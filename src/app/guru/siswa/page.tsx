@@ -49,7 +49,7 @@ export default function StudentRoster() {
   }, [refresh]);
 
   const shown = useMemo(() => children.filter((child) => child.display_name.toLowerCase().includes(query.trim().toLowerCase())), [children, query]);
-  const drafts = (childId: string) => sessions.filter((session) => session.child_id === childId && session.status === "draft");
+  const drafts = (childId: string) => sessions.filter((session) => session.child_id === childId && session.status === "draft").sort((a, b) => b.created_at.localeCompare(a.created_at));
 
   function open(child: Child) { setPicked(child); setNeedPin(false); setMessage(""); }
 

@@ -15,7 +15,6 @@ export default function StudentMode() {
   const [mode, setMode] = useState<Mode>("checking");
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [reading, setReading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -48,12 +47,12 @@ export default function StudentMode() {
       <header className="student-header"><Image src="/brand/logo-horizontal.svg" alt="Dyscovery" width={168} height={41} priority /></header>
       <main className="student-main">
         {mode === "checking" && <p role="status">Memeriksa mode…</p>}
-        {mode !== "checking" && <>
-          {!reading && <Image className="piko" src={mode === "student" ? "/mascot/piko-wave.svg" : "/mascot/piko-rest.svg"} alt="" width={160} height={165} />}
-          <h1>{mode === "student" ? "Halo! Ayo berlatih membaca." : "Sesi ini belum bisa dilanjutkan."}</h1>
-          {mode === "locked" && <p className="notice warn">Waktu sesi habis atau izin berubah. Panggil guru untuk melanjutkan.</p>}
-          {mode === "student" && <section className="reading-card reading" aria-label="Latihan"><Reading onReadingChange={setReading} fallback={<Practice />} /></section>}
+        {mode === "locked" && <>
+          <Image className="piko" src="/mascot/piko-rest.svg" alt="" width={160} height={165} />
+          <h1>Sesi ini belum bisa dilanjutkan.</h1>
+          <p className="notice warn">Waktu sesi habis atau izin berubah. Panggil guru untuk melanjutkan.</p>
         </>}
+        {mode === "student" && <Reading fallback={<section className="reading-card reading" aria-label="Latihan"><h1>Latihan</h1><Practice /></section>} />}
       </main>
       <footer className="student-bottom">
         <span className="muted small">Jangan menekan tombol ini sendiri. Minta bantuan guru.</span>
