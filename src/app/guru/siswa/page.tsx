@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/ui/api";
@@ -94,14 +95,27 @@ export default function StudentRoster() {
       <aside className="sidebar">
         <div>
           <Image className="brand" src="/brand/logo-horizontal.svg" alt="Dyscovery" width={152} height={37} priority />
-          <p className="role-tag">Ruang Guru</p>
+          <p className="role-tag">Ruang guru</p>
         </div>
-        <nav className="nav" aria-label="Menu guru"><a href="/guru/siswa" aria-current="page">Daftar siswa</a></nav>
+        <nav className="nav" aria-label="Menu guru">
+          <Link href="/guru/siswa" aria-current="page">Daftar siswa</Link>
+          <Link href="/guru/rekaman">Tinjau rekaman</Link>
+          <Link href="/guru/laporan">Laporan observasi</Link>
+        </nav>
+        <div className="sidebar-notice">
+          <p className="sidebar-notice-title">Privasi siswa</p>
+          <p className="sidebar-notice-text">Rekaman hanya untuk peninjauan guru.</p>
+        </div>
         <div className="sidebar-bottom">
           <button className="btn secondary" onClick={async () => { await api("/api/auth/logout", {}); router.replace("/masuk"); }}>Keluar</button>
         </div>
       </aside>
       <main className="workspace">
+        <header className="portal-subbar">
+          <span className="subbar-meta">Portal Guru • Kelas 2A / Tahun ajaran 2026–2027</span>
+          <div className="user-badge" aria-label="Profil guru">GR</div>
+        </header>
+
         <div className="page-heading">
           <h1>Daftar siswa</h1>
           <p className="muted">Pilih siswa, lalu serahkan perangkat setelah mode siswa aktif.</p>
@@ -118,14 +132,33 @@ export default function StudentRoster() {
           {load === "ready" && children.length === 0 && <div className="empty"><strong>Belum ada siswa yang ditugaskan.</strong><p>Siswa muncul setelah operator menetapkan penugasan untuk akun Anda.</p></div>}
           {load === "ready" && children.length > 0 && shown.length === 0 && <p className="empty">Tidak ada siswa dengan nama tersebut.</p>}
           {load === "ready" && shown.length > 0 && <div className="table-wrap"><table>
-            <thead><tr><th scope="col">Siswa</th><th scope="col">Kelas</th><th scope="col">Draf sesi</th><th scope="col"><span className="sr-only">Aksi</span></th></tr></thead>
+            <thead><tr><th scope="col">Siswa</th><th scope="col">Kelas</th><th scope="col">Status sesi</th><th scope="col"><span className="sr-only">Aksi</span></th></tr></thead>
             <tbody>{shown.map((child) => {
               const count = drafts(child.id).length;
+              const childSessions = sessions.filter((s) => s.child_id === child.id);
+              const activeSession = childSessions[0];
               return <tr key={child.id}>
                 <td><span className="student-cell"><span className="avatar" aria-hidden="true">{initials(child.display_name)}</span>{child.display_name}</span></td>
                 <td>Kelas {child.grade}</td>
-                <td>{count ? <span className="badge ready">{count} draf siap</span> : <span className="badge none">Belum ada draf</span>}</td>
-                <td><button className="btn secondary" onClick={() => open(child)}>Siapkan sesi</button></td>
+                <td>
+                  {count > 0 ? (
+                    <span className="badge ready">{count} draf siap</span>
+                  ) : childSessions.length > 0 ? (
+                    <span className="badge ready">Sesi tersedia</span>
+                  ) : (
+                    <span className="badge none">Belum ada sesi</span>
+                  )}
+                </td>
+                <td>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="btn secondary" onClick={() => open(child)}>Siapkan sesi</button>
+                    {activeSession && (
+                      <Link href={`/guru/rekaman?session=${activeSession.id}`} className="btn secondary">
+                        Tinjau rekaman
+                      </Link>
+                    )}
+                  </div>
+                </td>
               </tr>;
             })}</tbody>
           </table></div>}
