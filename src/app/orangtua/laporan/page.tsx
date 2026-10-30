@@ -144,8 +144,14 @@ function GuardianReportAndDirectoryContent() {
           <p className="role-tag">Portal Orang Tua</p>
         </div>
         <nav className="nav" aria-label="Menu orang tua">
+          <p className="nav-section-label">Menu Navigasi</p>
           <Link href="/orangtua/laporan" aria-current="page">Laporan observasi</Link>
         </nav>
+        <div className="sidebar-role-switcher" role="navigation" aria-label="Pindah peran">
+          <p className="nav-section-label">Pindah Peran</p>
+          <Link href="/guru/siswa">Ruang guru</Link>
+          <Link href="/operator">Ruang operator</Link>
+        </div>
         <div className="sidebar-notice">
           <p className="sidebar-notice-title">Keluarga & Privasi</p>
           <p className="sidebar-notice-text">Laporan anak hanya dapat dibagikan kepada psikolog dengan persetujuan sadar orang tua.</p>

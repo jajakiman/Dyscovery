@@ -121,8 +121,14 @@ function OperatorDashboardContent() {
           <p className="role-tag">Ruang Operator Sekolah</p>
         </div>
         <nav className="nav" aria-label="Menu operator">
+          <p className="nav-section-label">Menu Navigasi</p>
           <Link href="/operator" aria-current="page">Manajemen siswa</Link>
         </nav>
+        <div className="sidebar-role-switcher" role="navigation" aria-label="Pindah peran">
+          <p className="nav-section-label">Pindah Peran</p>
+          <Link href="/guru/siswa">Ruang guru</Link>
+          <Link href="/orangtua/laporan">Portal orang tua</Link>
+        </div>
         <div className="sidebar-notice">
           <p className="sidebar-notice-title">Keamanan Data Sekolah</p>
           <p className="sidebar-notice-text">

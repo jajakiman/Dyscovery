@@ -193,10 +193,16 @@ export default function StudentRoster() {
           <p className="role-tag">Ruang guru</p>
         </div>
         <nav className="nav" aria-label="Menu guru">
+          <p className="nav-section-label">Menu Navigasi</p>
           <Link href="/guru/siswa" aria-current="page">Daftar siswa</Link>
           <Link href="/guru/rekaman">Tinjau rekaman</Link>
           <Link href="/guru/laporan">Laporan observasi</Link>
         </nav>
+        <div className="sidebar-role-switcher" role="navigation" aria-label="Pindah peran">
+          <p className="nav-section-label">Pindah Peran</p>
+          <Link href="/operator">Ruang operator</Link>
+          <Link href="/orangtua/laporan">Portal orang tua</Link>
+        </div>
         <div className="sidebar-notice">
           <p className="sidebar-notice-title">Privasi siswa</p>
           <p className="sidebar-notice-text">Rekaman hanya untuk peninjauan guru.</p>
