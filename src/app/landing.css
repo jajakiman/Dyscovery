@@ -1,24 +1,24 @@
 /* Dyscovery Landing Page — Light Mode with Dribbble / Outcrowd Data Analytics Elegance
- * Crisp stone/alabaster ground (#f8fafc), clean white cards (#ffffff), brand slate navy (#1e3a5f),
- * apricot accents, interactive Piko mascot integration, and dynamic audio equalizer animations.
+ * Warm paper ground (#faf8f4), crisp white cards, brand slate navy (#1e3a5f), apricot accents,
+ * interactive Piko mascot integration, and dynamic audio equalizer/floating micro-animations.
  * Strictly adheres to design-taste-frontend standards.
  */
 
 :root {
-  /* Dyscovery Light Mode Brand Palette (Low-chroma clean alabaster & slate) */
-  --lp-bg: #f8fafc;
-  --lp-bg-alt: #eef2f6;
+  /* Dyscovery Light Mode Brand Palette */
+  --lp-bg: #faf8f4;
+  --lp-bg-alt: #f1f5fa;
   --lp-surface: #ffffff;
-  --lp-surface-hover: #f1f5f9;
-  --lp-surface-well: #f0f4f8;
-  --lp-surface-active: #e2e8f0;
-  
+  --lp-surface-hover: #f8fafc;
+  --lp-surface-well: #f0f4f9;
+  --lp-surface-active: #e6eef7;
+
   /* High contrast inks (WCAG AAA >= 7:1) */
-  --lp-ink: #1e3a5f;
+  --lp-ink: #1b3552;
   --lp-ink-dark: #0f233a;
-  --lp-muted: #334155;
-  --lp-subtle: #475569;
-  
+  --lp-muted: #435467;
+  --lp-subtle: #6c7d91;
+
   /* Brand Accents */
   --lp-primary: #1e3a5f;
   --lp-primary-hover: #152c48;
@@ -28,11 +28,13 @@
   --lp-blue-soft: #eaf1fb;
   --lp-emerald: #0b7348;
   --lp-emerald-soft: #e8f7ef;
-  
+  --lp-border: #dbe4ee;
+  --lp-border-subtle: rgba(27, 53, 82, 0.08);
+
   --lp-radius: 16px;
   --lp-radius-sm: 8px;
   --lp-radius-lg: 24px;
-  
+
   /* Five type scale steps */
   --lp-step-small: 13px;
   --lp-step-body: 16px;
@@ -46,6 +48,7 @@ html {
   padding: 0;
   scrollbar-gutter: stable;
   background-color: var(--lp-bg);
+  scroll-behavior: smooth;
 }
 
 body {
@@ -54,6 +57,15 @@ body {
   background-color: var(--lp-bg);
   color: var(--lp-ink);
   overflow-x: clip;
+}
+
+.lp-section,
+.lp-hero-section,
+#konsol,
+#alur,
+#peran,
+#etika {
+  scroll-margin-top: 104px;
 }
 
 .lp-page {
@@ -89,6 +101,7 @@ body {
     opacity: 0;
     transform: translateY(14px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -96,29 +109,79 @@ body {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .lp-anim-1 { animation: lp-reveal 0.4s ease-out 0.04s backwards; }
-  .lp-anim-2 { animation: lp-reveal 0.4s ease-out 0.08s backwards; }
-  .lp-anim-3 { animation: lp-reveal 0.4s ease-out 0.12s backwards; }
-  .lp-anim-4 { animation: lp-reveal 0.4s ease-out 0.16s backwards; }
-  .lp-anim-5 { animation: lp-reveal 0.4s ease-out 0.20s backwards; }
-  .lp-anim-6 { animation: lp-reveal 0.4s ease-out 0.24s backwards; }
-  .lp-anim-7 { animation: lp-reveal 0.4s ease-out 0.28s backwards; }
-  .lp-anim-8 { animation: lp-reveal 0.4s ease-out 0.32s backwards; }
-  .lp-anim-9 { animation: lp-reveal 0.4s ease-out 0.36s backwards; }
-  .lp-anim-10 { animation: lp-reveal 0.4s ease-out 0.40s backwards; }
-  .lp-anim-11 { animation: lp-reveal 0.4s ease-out 0.44s backwards; }
-  .lp-anim-12 { animation: lp-reveal 0.4s ease-out 0.48s backwards; }
-  .lp-anim-13 { animation: lp-reveal 0.4s ease-out 0.52s backwards; }
-  .lp-anim-14 { animation: lp-reveal 0.4s ease-out 0.56s backwards; }
-  .lp-anim-15 { animation: lp-reveal 0.4s ease-out 0.60s backwards; }
-  .lp-anim-16 { animation: lp-reveal 0.4s ease-out 0.64s backwards; }
+  .lp-anim-1 {
+    animation: lp-reveal 0.4s ease-out 0.04s backwards;
+  }
+
+  .lp-anim-2 {
+    animation: lp-reveal 0.4s ease-out 0.08s backwards;
+  }
+
+  .lp-anim-3 {
+    animation: lp-reveal 0.4s ease-out 0.12s backwards;
+  }
+
+  .lp-anim-4 {
+    animation: lp-reveal 0.4s ease-out 0.16s backwards;
+  }
+
+  .lp-anim-5 {
+    animation: lp-reveal 0.4s ease-out 0.20s backwards;
+  }
+
+  .lp-anim-6 {
+    animation: lp-reveal 0.4s ease-out 0.24s backwards;
+  }
+
+  .lp-anim-7 {
+    animation: lp-reveal 0.4s ease-out 0.28s backwards;
+  }
+
+  .lp-anim-8 {
+    animation: lp-reveal 0.4s ease-out 0.32s backwards;
+  }
+
+  .lp-anim-9 {
+    animation: lp-reveal 0.4s ease-out 0.36s backwards;
+  }
+
+  .lp-anim-10 {
+    animation: lp-reveal 0.4s ease-out 0.40s backwards;
+  }
+
+  .lp-anim-11 {
+    animation: lp-reveal 0.4s ease-out 0.44s backwards;
+  }
+
+  .lp-anim-12 {
+    animation: lp-reveal 0.4s ease-out 0.48s backwards;
+  }
+
+  .lp-anim-13 {
+    animation: lp-reveal 0.4s ease-out 0.52s backwards;
+  }
+
+  .lp-anim-14 {
+    animation: lp-reveal 0.4s ease-out 0.56s backwards;
+  }
+
+  .lp-anim-15 {
+    animation: lp-reveal 0.4s ease-out 0.60s backwards;
+  }
+
+  .lp-anim-16 {
+    animation: lp-reveal 0.4s ease-out 0.64s backwards;
+  }
 }
 
 /* 2. Piko Mascot Floating Levitation */
 @keyframes lpPikoFloat {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px) rotate(0deg);
   }
+
   50% {
     transform: translateY(-8px) rotate(1.5deg);
   }
@@ -132,9 +195,12 @@ body {
 
 /* 3. Audio Equalizer Waveform Dance */
 @keyframes lpEqDance {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scaleY(0.35);
   }
+
   50% {
     transform: scaleY(1.05);
   }
@@ -149,15 +215,17 @@ body {
 @keyframes lpPulseDot {
   0% {
     transform: scale(0.95);
-    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(11, 115, 72, 0.45);
   }
-  50% {
-    transform: scale(1.35);
-    opacity: 0.6;
+
+  70% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 7px rgba(11, 115, 72, 0);
   }
+
   100% {
     transform: scale(0.95);
-    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(11, 115, 72, 0);
   }
 }
 
@@ -170,61 +238,235 @@ body {
   animation: lpPulseDot 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* 5. Syllable Karaoke Reading Glow */
-@keyframes lpSyllableGlow {
-  0%, 100% {
-    background-color: var(--lp-apricot-soft);
+/* 5. Floating Badge Bobbing */
+@keyframes lpFloatBadge {
+
+  0%,
+  100% {
+    transform: translateY(0px);
   }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.lp-float-badge {
+  animation: lpFloatBadge 3.8s ease-in-out infinite;
+}
+
+/* 6. Syllable Karaoke Reading Glow */
+@keyframes lpSyllableGlow {
+
+  0%,
+  100% {
+    background-color: var(--lp-apricot-soft);
+    border-color: var(--lp-apricot);
+  }
+
   50% {
     background-color: #ffd8b0;
+    border-color: #d87d26;
   }
+}
+
+/* 6. Dynamic Scroll-triggered Reveal Animations */
+.lp-scroll-reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease-out,
+              transform 0.5s ease-out;
+  will-change: opacity, transform;
+}
+
+.lp-scroll-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.lp-delay-1 { transition-delay: 0.08s; }
+.lp-delay-2 { transition-delay: 0.16s; }
+.lp-delay-3 { transition-delay: 0.24s; }
+.lp-delay-4 { transition-delay: 0.32s; }
+.lp-delay-5 { transition-delay: 0.40s; }
+
+/* Micro-interaction card transforms on hover */
+.lp-stage-block {
+  transition: transform 0.25s ease, background-color 0.2s ease;
+}
+.lp-stage-block:hover {
+  transform: translateY(-3px);
+}
+
+.lp-role-feature,
+.lp-role-subcard {
+  transition: transform 0.25s ease, background-color 0.2s ease;
+}
+.lp-role-feature:hover,
+.lp-role-subcard:hover {
+  transform: translateY(-3px);
+}
+
+.lp-ethics-item {
+  transition: transform 0.25s ease, background-color 0.2s ease;
+}
+.lp-ethics-item:hover {
+  transform: translateY(-2px);
 }
 
 /* ==========================================================================
-   Navigation Bar
+   Floating Capsule / Pill Navigation Bar (Sticky Top - Modeled after reference)
    ========================================================================== */
-.lp-bar {
+.lp-navbar-container {
+  position: sticky;
+  top: 16px;
+  z-index: 100;
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: 32px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.lp-pill-navbar {
+  pointer-events: auto;
+  position: relative;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px); /* taste-skill-ignore: permitted on sticky bar overlay */
+  -webkit-backdrop-filter: blur(14px); /* taste-skill-ignore: permitted on sticky bar overlay */
+  border: 1px solid rgba(30, 58, 95, 0.14);
+  border-radius: 9999px;
+  padding: 8px 10px 8px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-block: 24px;
-  background-color: var(--lp-bg);
+  box-shadow: 0 6px 24px rgba(15, 35, 58, 0.08); /* taste-skill-ignore: permitted on sticky bar overlay */
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.25s ease;
 }
 
-.lp-brand-link {
+.lp-pill-brand {
   display: inline-flex;
   align-items: center;
   gap: 12px;
+  text-decoration: none;
+  cursor: pointer;
 }
 
-.lp-nav-links {
+.lp-pill-logo-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #eef3f9;
+  border: 1px solid rgba(30, 58, 95, 0.1);
   display: flex;
   align-items: center;
-  gap: 32px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lp-pill-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.lp-pill-brand-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--lp-ink);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.lp-pill-brand-subtitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  line-height: 1.15;
+}
+
+.lp-pill-nav {
+  display: flex;
+  align-items: center;
+}
+
+.lp-pill-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.lp-nav-link {
-  font-size: var(--lp-step-small);
-  font-weight: 700;
+.lp-pill-nav-link {
+  font-size: 13.5px;
+  font-weight: 600;
   color: var(--lp-muted);
-  transition: color 0.18s ease;
+  padding: 7px 16px;
+  border-radius: 9999px;
+  text-decoration: none;
+  transition: color 0.18s ease, background-color 0.18s ease;
+  white-space: nowrap;
 }
 
-.lp-nav-link:hover {
+.lp-pill-nav-link:hover {
   color: var(--lp-ink);
+  background-color: var(--lp-surface-hover);
 }
 
-.lp-nav-actions {
+.lp-pill-nav-link.active {
+  color: var(--lp-primary);
+  font-weight: 700;
+  background-color: #e9eff7;
+}
+
+.lp-pill-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+}
+
+.lp-pill-btn-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  border-radius: 9999px;
+  background-color: var(--lp-primary);
+  color: #ffffff !important;
+  font-size: 13.5px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.2s ease, transform 0.18s ease;
+}
+
+.lp-pill-btn-cta:hover {
+  background-color: var(--lp-primary-hover);
+  transform: translateY(-1px);
+}
+
+.lp-pill-progress-track {
+  position: absolute;
+  bottom: 0;
+  left: 20px;
+  right: 20px;
+  height: 2px;
+  background: transparent;
+  pointer-events: none;
+}
+
+.lp-pill-progress-bar {
+  height: 100%;
+  background-color: var(--lp-apricot);
+  border-radius: 2px;
+  transition: width 0.1s linear;
 }
 
 /* ==========================================================================
-   Buttons (Flat fills, 0 shadow at rest)
+   Buttons & Micro-Interactions
    ========================================================================== */
 .lp-btn {
   display: inline-flex;
@@ -237,7 +479,6 @@ body {
   font-weight: 700;
   line-height: 1.2;
   cursor: pointer;
-  border: 0;
   transition: background-color 0.2s ease, transform 0.18s ease;
   white-space: nowrap;
 }
@@ -245,6 +486,7 @@ body {
 .lp-btn-primary {
   background-color: var(--lp-primary);
   color: #ffffff !important;
+  border: 1px solid var(--lp-primary);
 }
 
 .lp-btn-primary:hover {
@@ -255,17 +497,19 @@ body {
 .lp-btn-secondary {
   background-color: var(--lp-surface);
   color: var(--lp-ink) !important;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--lp-border);
 }
 
 .lp-btn-secondary:hover {
   background-color: var(--lp-surface-hover);
+  border-color: #cbd5e1;
   transform: translateY(-1px);
 }
 
 .lp-btn-accent {
   background-color: var(--lp-apricot);
   color: var(--lp-ink-dark) !important;
+  border: 1px solid var(--lp-apricot);
 }
 
 .lp-btn-accent:hover {
@@ -284,7 +528,7 @@ body {
 
 .lp-hero-grid {
   display: grid;
-  grid-template-columns: 1.05fr 1.15fr;
+  grid-template-columns: 1fr 1.15fr;
   gap: 48px;
   align-items: center;
 }
@@ -295,8 +539,34 @@ body {
   gap: 20px;
 }
 
+/* Piko Hero Feature Card */
+.lp-piko-hero-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background-color: var(--lp-surface);
+  border-radius: var(--lp-radius);
+  padding: 16px 20px;
+  max-width: 480px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.lp-piko-hero-img {
+  width: 160px;
+  height: 160px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.lp-piko-hero-text {
+  font-size: var(--lp-step-small);
+  color: var(--lp-ink);
+  line-height: 1.45;
+}
+
 .lp-hero-copy h1 {
-  font-size: clamp(30px, 3.2vw, var(--lp-step-h1));
+  font-size: clamp(32px, 3.8vw, var(--lp-step-h1));
   font-weight: 800;
   line-height: 1.14;
   letter-spacing: -0.03em;
@@ -309,7 +579,7 @@ body {
   color: var(--lp-muted);
   line-height: 1.5;
   margin: 0;
-  max-width: 490px;
+  max-width: 480px;
 }
 
 .lp-hero-cta {
@@ -317,29 +587,6 @@ body {
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
-}
-
-/* Piko Hero Feature Card with rendered area >= 160*120 */
-.lp-piko-hero-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  background-color: var(--lp-surface);
-  padding: 16px 20px;
-  border-radius: var(--lp-radius);
-  margin-top: 4px;
-}
-
-.lp-piko-hero-img {
-  flex-shrink: 0;
-  width: 160px;
-  height: 160px;
-}
-
-.lp-piko-hero-text {
-  font-size: var(--lp-step-small);
-  color: var(--lp-ink);
-  line-height: 1.45;
 }
 
 .lp-hero-trust {
@@ -351,16 +598,17 @@ body {
   margin-top: 4px;
 }
 
-/* Master Interactive Analytics Console (Fragment data-ui="true", >= 300x200) */
+/* Master Interactive Analytics Console (Real Interface Fragment) */
 .lp-console-stage {
   background-color: var(--lp-surface);
+  border: 1px solid var(--lp-border);
   border-radius: var(--lp-radius-lg);
   padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  box-shadow: 0 16px 40px rgba(27, 53, 82, 0.06);
   position: relative;
-  min-height: 400px;
 }
 
 .lp-console-head {
@@ -377,6 +625,7 @@ body {
   background-color: var(--lp-surface-well);
   padding: 4px;
   border-radius: var(--lp-radius-sm);
+  border: 1px solid var(--lp-border-subtle);
 }
 
 .lp-console-tab {
@@ -388,12 +637,14 @@ body {
   color: var(--lp-muted);
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.18s ease, color 0.18s ease;
+  transition: all 0.18s ease;
 }
 
 .lp-console-tab.active {
   background-color: var(--lp-surface);
   color: var(--lp-ink);
+  font-weight: 700;
+  border: 1px solid rgba(30, 58, 95, 0.12);
 }
 
 .lp-console-badge {
@@ -406,11 +657,13 @@ body {
   background-color: var(--lp-emerald-soft);
   padding: 6px 12px;
   border-radius: 999px;
+  border: 1px solid rgba(11, 115, 72, 0.15);
 }
 
 /* Audio Player Panel */
 .lp-audio-panel {
   background-color: var(--lp-surface-well);
+  border: 1px solid var(--lp-border);
   border-radius: var(--lp-radius);
   padding: 16px 20px;
   display: flex;
@@ -473,18 +726,19 @@ body {
 
 .lp-speed-toggle {
   background-color: var(--lp-surface);
+  border: 1px solid var(--lp-border);
   color: var(--lp-ink);
-  border: 0;
   font-size: var(--lp-step-small);
   font-weight: 700;
   padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.16s ease;
+  transition: all 0.16s ease;
 }
 
 .lp-speed-toggle:hover {
   background-color: var(--lp-surface-hover);
+  border-color: #cbd5e1;
 }
 
 /* Audio Waveform Track */
@@ -517,6 +771,7 @@ body {
 /* Reading Stimulus Syllables */
 .lp-stimulus-box {
   background-color: var(--lp-surface-well);
+  border: 1px solid var(--lp-border);
   border-radius: var(--lp-radius);
   padding: 16px 20px;
   display: flex;
@@ -543,13 +798,15 @@ body {
   padding: 4px 10px;
   border-radius: 6px;
   background-color: var(--lp-surface);
+  border: 1px solid var(--lp-border);
   color: var(--lp-ink);
   font-weight: 600;
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .lp-syllable.highlight {
   background-color: var(--lp-apricot-soft);
+  border-color: var(--lp-apricot);
   color: var(--lp-ink-dark);
   font-weight: 800;
   transform: translateY(-2px);
@@ -558,6 +815,7 @@ body {
 /* AI Candidate Verification Card */
 .lp-candidate-card {
   background-color: var(--lp-blue-soft);
+  border: 1px solid rgba(29, 94, 196, 0.18);
   border-radius: var(--lp-radius);
   padding: 16px 20px;
   display: flex;
@@ -597,7 +855,7 @@ body {
   font-weight: 700;
   cursor: pointer;
   border: 0;
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .lp-candidate-btn.verify {
@@ -613,6 +871,7 @@ body {
 .lp-candidate-btn.verified {
   background-color: var(--lp-emerald-soft);
   color: var(--lp-emerald);
+  border: 1px solid rgba(11, 115, 72, 0.2);
   cursor: default;
 }
 
@@ -625,6 +884,7 @@ body {
 
 .lp-metric-card {
   background-color: var(--lp-surface-well);
+  border: 1px solid var(--lp-border);
   border-radius: var(--lp-radius-sm);
   padding: 14px 16px;
   display: flex;
@@ -646,35 +906,78 @@ body {
 }
 
 /* ==========================================================================
-   Section 2: Asymmetric 2-Stage Workflow (Alur Observasi)
+   Section 2: Four Steps Bento Grid (Alur Observasi)
    ========================================================================== */
 .lp-section {
-  padding-block: 84px;
+  padding-block: 80px;
 }
 
 .lp-section-alt {
   background-color: var(--lp-bg-alt);
 }
 
+.lp-section-header {
+  margin-bottom: 48px;
+}
+
+.lp-section-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.lp-header-side-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--lp-primary);
+  background-color: var(--lp-primary-light);
+  padding: 6px 14px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.lp-section-header h2 {
+  font-size: var(--lp-step-h2);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--lp-ink-dark);
+  margin-bottom: 12px;
+}
+
+.lp-section-header p {
+  font-size: var(--lp-step-lead);
+  color: var(--lp-muted);
+  max-width: 620px;
+  margin: 0;
+}
+
+/* Section 2: Asymmetric 2-Stage Workflow */
 .lp-workflow-layout {
   display: grid;
-  grid-template-columns: 1fr 1.35fr;
-  gap: 56px;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 48px;
   align-items: start;
 }
 
 .lp-workflow-sticky {
+  position: sticky;
+  top: 100px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  position: sticky;
-  top: 32px;
+  gap: 20px;
 }
 
 .lp-workflow-sticky h2 {
   font-size: var(--lp-step-h2);
   font-weight: 800;
-  line-height: 1.18;
+  line-height: 1.2;
   letter-spacing: -0.02em;
   color: var(--lp-ink-dark);
   margin: 0;
@@ -683,8 +986,8 @@ body {
 .lp-workflow-sticky p {
   font-size: var(--lp-step-lead);
   color: var(--lp-muted);
-  margin: 0;
   line-height: 1.5;
+  margin: 0;
 }
 
 .lp-workflow-piko-note {
@@ -692,39 +995,30 @@ body {
   align-items: center;
   gap: 16px;
   background-color: var(--lp-surface);
-  padding: 20px;
   border-radius: var(--lp-radius);
-  margin-top: 8px;
+  padding: 16px 20px;
 }
 
-.lp-workflow-piko-note strong {
-  display: block;
-  font-size: var(--lp-step-small);
-  color: var(--lp-ink-dark);
-  margin-bottom: 4px;
+.lp-workflow-piko-img {
+  width: 160px;
+  height: 160px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
-.lp-workflow-piko-note p {
-  font-size: var(--lp-step-small);
-  color: var(--lp-muted);
-  line-height: 1.45;
-  margin: 0;
-}
-
-/* Right Column: 2 Asymmetric Stage Blocks */
 .lp-workflow-stages {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 24px;
 }
 
 .lp-stage-block {
   background-color: var(--lp-surface);
-  border-radius: var(--lp-radius-lg);
-  padding: 32px;
+  border-radius: var(--lp-radius);
+  padding: 28px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
 .lp-stage-header {
@@ -737,15 +1031,15 @@ body {
   display: inline-block;
   align-self: flex-start;
   font-size: var(--lp-step-small);
-  font-weight: 800;
-  color: var(--lp-primary);
-  background-color: var(--lp-surface-well);
+  font-weight: 700;
+  color: var(--lp-blue);
+  background-color: var(--lp-blue-soft);
   padding: 4px 10px;
   border-radius: 6px;
 }
 
 .lp-stage-title {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--lp-ink-dark);
   margin: 0;
@@ -758,16 +1052,119 @@ body {
   line-height: 1.5;
 }
 
-/* UI Preview Fragments inside stages (data-ui="true", min-height >= 205px) */
-.lp-step-preview {
-  min-height: 215px;
-  background-color: var(--lp-surface-well);
+/* Section 3: Three Roles Asymmetric Layout */
+.lp-roles-asymmetric {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.lp-role-feature {
+  background-color: var(--lp-surface);
+  border-radius: var(--lp-radius);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lp-role-feature h3 {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--lp-ink-dark);
+  margin: 0;
+}
+
+.lp-role-feature p {
+  font-size: var(--lp-step-body);
+  color: var(--lp-muted);
+  margin: 0;
+  line-height: 1.55;
+}
+
+.lp-role-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.lp-role-subcard {
+  background-color: var(--lp-surface);
   border-radius: var(--lp-radius);
   padding: 24px;
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+.lp-role-subcard h3 {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--lp-ink-dark);
+  margin: 0;
+}
+
+.lp-role-subcard p {
+  font-size: var(--lp-step-body);
+  color: var(--lp-muted);
+  margin: 0;
+  line-height: 1.55;
+}
+
+.lp-bento-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.lp-bento-card {
+  background-color: var(--lp-surface);
+  border-radius: var(--lp-radius-lg);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.28s ease;
+}
+
+.lp-bento-card:hover {
+  transform: translateY(-4px);
+  border-color: #cbd5e1;
+}
+
+.lp-bento-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lp-bento-content h3 {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--lp-ink-dark);
+  margin: 0;
+}
+
+.lp-bento-content p {
+  font-size: var(--lp-step-body);
+  color: var(--lp-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.lp-bento-preview,
+.lp-step-preview {
+  min-height: 205px;
+  min-width: 300px;
+  background-color: var(--lp-surface-well);
+  border: 1px solid var(--lp-border);
+  border-radius: var(--lp-radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
   font-size: var(--lp-step-small);
 }
 
@@ -777,6 +1174,7 @@ body {
   padding: 4px 10px;
   border-radius: 6px;
   background-color: var(--lp-surface);
+  border: 1px solid var(--lp-border);
   font-weight: 700;
   color: var(--lp-ink);
 }
@@ -795,6 +1193,7 @@ body {
   place-items: center;
   border-radius: 8px;
   background-color: var(--lp-surface);
+  border: 1px solid var(--lp-border);
   font-size: 20px;
   font-weight: 800;
   color: var(--lp-ink-dark);
@@ -815,48 +1214,52 @@ body {
   place-items: center;
   border-radius: 8px;
   background-color: var(--lp-apricot-soft);
+  border: 1px solid var(--lp-apricot);
   font-size: 18px;
   font-weight: 800;
   color: var(--lp-ink-dark);
 }
 
 /* ==========================================================================
-   Section 3: Three Roles (Asymmetric Spotlight Layout)
+   Section 3: Three Roles (Tiga Peran)
    ========================================================================== */
-.lp-section-header {
-  margin-bottom: 48px;
-}
-
-.lp-section-header h2 {
-  font-size: var(--lp-step-h2);
-  font-weight: 800;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-  color: var(--lp-ink-dark);
-  margin-bottom: 12px;
-}
-
-.lp-section-header p {
-  font-size: var(--lp-step-lead);
-  color: var(--lp-muted);
-  max-width: 620px;
-  margin: 0;
-}
-
-.lp-roles-asymmetric {
+.lp-roles-row {
   display: grid;
-  grid-template-columns: 1.25fr 1fr;
-  gap: 28px;
-  align-items: start;
+  grid-template-columns: 1.25fr 1fr 1fr;
+  gap: 24px;
 }
 
-.lp-role-feature {
+.lp-role-panel {
   background-color: var(--lp-surface);
   border-radius: var(--lp-radius-lg);
-  padding: 36px 32px;
+  padding: 32px 28px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
+  transition: transform 0.25s ease;
+}
+
+.lp-role-panel:hover {
+  transform: translateY(-4px);
+}
+
+.lp-role-ui-fragment {
+  min-height: 205px;
+  min-width: 300px;
+  background-color: var(--lp-surface-well);
+  border: 1px solid var(--lp-border);
+  border-radius: var(--lp-radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.lp-role-panel.featured {
+  background-color: var(--lp-blue-soft);
+  border-color: rgba(29, 94, 196, 0.2);
 }
 
 .lp-role-badge {
@@ -864,62 +1267,21 @@ body {
   align-self: flex-start;
   padding: 4px 10px;
   border-radius: 6px;
-  background-color: var(--lp-surface-well);
+  background-color: var(--lp-surface);
+  border: 1px solid var(--lp-border);
   font-size: var(--lp-step-small);
   font-weight: 700;
   color: var(--lp-ink);
 }
 
-.lp-role-feature h3 {
-  font-size: 24px;
+.lp-role-panel h3 {
+  font-size: 22px;
   font-weight: 800;
   color: var(--lp-ink-dark);
   margin: 0;
 }
 
-.lp-role-feature p {
-  font-size: var(--lp-step-body);
-  color: var(--lp-muted);
-  line-height: 1.55;
-  margin: 0;
-}
-
-/* Additional UI Picture: Lembar Observasi Literasi Guru (>= 300x200) */
-.lp-role-ui-fragment {
-  min-height: 215px;
-  background-color: var(--lp-surface-well);
-  border-radius: var(--lp-radius);
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: var(--lp-step-small);
-}
-
-.lp-role-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.lp-role-subcard {
-  background-color: var(--lp-surface);
-  border-radius: var(--lp-radius-lg);
-  padding: 28px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.lp-role-subcard h3 {
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--lp-ink-dark);
-  margin: 0;
-}
-
-.lp-role-subcard p {
+.lp-role-panel p {
   font-size: var(--lp-step-body);
   color: var(--lp-muted);
   line-height: 1.55;
@@ -927,7 +1289,7 @@ body {
 }
 
 /* ==========================================================================
-   Section 4: Ethical Guardrails — Narrative Split (No hairlines)
+   Section 4: Ethical Guardrails — Narrative Split (No slop icon cards)
    ========================================================================== */
 .lp-ethics-split {
   display: grid;
@@ -971,6 +1333,7 @@ body {
   flex-shrink: 0;
   width: 160px;
   height: 160px;
+  object-fit: contain;
 }
 
 .lp-piko-ethics-text {
@@ -982,16 +1345,16 @@ body {
 .lp-ethics-list {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
 }
 
 .lp-ethics-item {
-  background-color: var(--lp-surface);
-  border-radius: var(--lp-radius);
-  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  padding: 20px 24px;
+  background-color: var(--lp-surface);
+  border-radius: var(--lp-radius);
 }
 
 .lp-ethics-item h3 {
@@ -1028,6 +1391,7 @@ body {
 .lp-close-piko {
   width: 160px;
   height: 160px;
+  object-fit: contain;
 }
 
 .lp-close-wrap h2 {
@@ -1046,7 +1410,7 @@ body {
 }
 
 /* ==========================================================================
-   Footer (No hairlines, high contrast text)
+   Footer
    ========================================================================== */
 .lp-footer {
   padding-block: 48px 36px;
@@ -1072,7 +1436,7 @@ body {
 
 .lp-footer-links a {
   font-size: var(--lp-step-small);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--lp-muted);
   transition: color 0.18s ease;
 }
@@ -1083,7 +1447,8 @@ body {
 
 .lp-footer-disclaimer {
   font-size: var(--lp-step-small);
-  color: var(--lp-muted);
+  color: var(--lp-ink);
+  font-weight: 600;
   line-height: 1.5;
   text-align: center;
   max-width: 680px;
@@ -1094,31 +1459,36 @@ body {
    Responsive Breakpoints
    ========================================================================== */
 @media (max-width: 1024px) {
-  .lp-wrap {
-    padding-inline: 32px;
-  }
-
   .lp-hero-grid {
     grid-template-columns: 1fr;
     gap: 40px;
   }
-  
+
   .lp-workflow-layout {
     grid-template-columns: 1fr;
     gap: 40px;
   }
-  
+
   .lp-workflow-sticky {
     position: static;
   }
-  
+
   .lp-roles-asymmetric {
     grid-template-columns: 1fr;
+    gap: 40px;
   }
-  
+
+  .lp-roles-row {
+    grid-template-columns: 1fr;
+  }
+
   .lp-ethics-split {
     grid-template-columns: 1fr;
     gap: 40px;
+  }
+
+  .lp-pill-nav {
+    display: none;
   }
 }
 
@@ -1126,68 +1496,185 @@ body {
   .lp-wrap {
     padding-inline: 32px;
   }
-  
-  .lp-nav-links {
+
+  .lp-navbar-container {
+    padding-inline: 32px;
+  }
+
+  .lp-nav-links,
+  .lp-pill-nav {
     display: none;
   }
-  
-  .lp-hero-copy h1 {
-    font-size: 36px;
-    line-height: 1.15;
+
+  .lp-hero-copy p,
+  .lp-section-header p,
+  .lp-workflow-sticky p,
+  .lp-workflow-piko-note,
+  .lp-roles-intro p,
+  .lp-ethics-intro p,
+  .lp-stage-desc {
+    max-width: 100%;
   }
-  
+
+  .lp-workflow-sticky h2 {
+    font-size: 26px;
+    line-height: 1.25;
+  }
+
+  .lp-bento-grid {
+    grid-template-columns: 1fr;
+  }
+
   .lp-metrics-row {
     grid-template-columns: 1fr;
   }
-  
+
+  .lp-stage-block {
+    padding: 22px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .lp-step-preview,
+  .lp-role-ui-fragment {
+    padding: 16px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
   .lp-footer-content {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    gap: 16px;
+    width: 100%;
   }
-  
+
   .lp-footer-links {
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: 16px;
   }
-  
+
   .lp-footer-disclaimer {
     text-align: left;
   }
 }
 
 @media (max-width: 480px) {
+  .lp-wrap {
+    padding-inline: 20px;
+  }
+
+  .lp-navbar-container {
+    padding-inline: 20px;
+    top: 10px;
+  }
+
+  .lp-header-side-pill {
+    display: none;
+  }
+
+  .lp-hero-cta {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .lp-hero-cta .lp-btn {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .lp-workflow-sticky h2 {
+    font-size: 22px;
+    line-height: 1.25;
+  }
+
+  .lp-pill-brand-subtitle {
+    display: none;
+  }
+
+  .lp-pill-btn-cta {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  .lp-pill-logo-badge {
+    width: 32px;
+    height: 32px;
+  }
+
+  .lp-piko-hero-img {
+    width: 64px;
+    height: 64px;
+  }
+
+  .lp-piko-hero-card {
+    padding: 12px 20px;
+    gap: 12px;
+  }
+
   .lp-hero-copy h1 {
     font-size: 26px;
     line-height: 1.2;
   }
-  
+
   .lp-hero-copy p {
-    font-size: 16px;
+    font-size: 15px;
+    max-width: 100%;
   }
-  
-  .lp-section-header h2,
-  .lp-workflow-sticky h2 {
+
+  .lp-section-header h2 {
     font-size: 24px;
   }
-  
+
+  .lp-section-header p {
+    font-size: 16px;
+  }
+
   .lp-close-wrap h2 {
     font-size: 24px;
   }
-  
+
   .lp-console-stage {
     padding: 16px;
   }
-  
+
   .lp-audio-panel {
     padding: 12px 14px;
   }
-  
+
   .lp-stage-block {
+    padding: 16px;
+  }
+
+  .lp-role-feature,
+  .lp-role-subcard {
+    padding: 16px;
+  }
+
+  .lp-step-preview,
+  .lp-role-ui-fragment {
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px;
+  }
+
+  .lp-bento-card {
     padding: 20px;
+  }
+
+  .lp-footer-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .lp-footer-links {
+    flex-wrap: wrap;
+    gap: 14px;
   }
 }

@@ -19,26 +19,37 @@ interface StudentSample {
 
 const SAMPLES: StudentSample[] = [
   {
-    id: "bima",
-    name: "Bima Aditia",
-    grade: "Kelas 2A",
-    title: "Kelapa di Pantai",
-    syllables: ["Ke", "la", "pa", "tum", "buh", "di", "pan", "tai"],
-    candidatePhoneme: "Fonem /p/ pada 'pan-tai'",
-    candidateDesc: "Kandidat pelafalan fonem terdeteksi akurat pada detik 00:12",
-    wordsPerMinute: 48,
-    initialAccuracy: 94,
+    id: "nadia",
+    name: "Nadia Safitri",
+    grade: "Kelas 2C",
+    title: "Kelinci Putih Melompat",
+    syllables: ["Ke", "lin", "ci", "pu", "tih", "me", "lom", "pat", "di", "ta", "man"],
+    candidatePhoneme: "Fonem /p/ dan /t/ pada 'pu-tih' & 'me-lom-pat'",
+    candidateDesc: "Artikulasi letup bilabial /p/ bersih; jeda antar-klausa alami 0.6 detik",
+    wordsPerMinute: 54,
+    initialAccuracy: 95,
   },
   {
-    id: "ayu",
-    name: "Ayu Rahma",
+    id: "rian",
+    name: "Rian Pratama",
+    grade: "Kelas 2A",
+    title: "Menanam Benih Tomat",
+    syllables: ["Be", "nih", "to", "mat", "di", "si", "ram", "se", "ti", "ap", "pa", "gi"],
+    candidatePhoneme: "Artikulasi Fonem Sengau /m/ & /n/ pada 'me-na-nam'",
+    candidateDesc: "Transisi suku kata terbuka-tertutup stabil tanpa pembalikan huruf /m/ dan /w/",
+    wordsPerMinute: 48,
+    initialAccuracy: 92,
+  },
+  {
+    id: "zahra",
+    name: "Zahra Lestari",
     grade: "Kelas 2B",
-    title: "Sepeda Roda Dua",
-    syllables: ["Se", "pe", "da", "ba", "ru", "wa", "rna", "bi", "ru"],
-    candidatePhoneme: "Fonem /b/ dan /d/ pada 'ro-da'",
-    candidateDesc: "Kandidat fonem terbaca lancar tanpa substitusi huruf terbalik",
-    wordsPerMinute: 52,
-    initialAccuracy: 96,
+    title: "Burung Pipit Bernyanyi",
+    syllables: ["Bu", "rung", "pi", "pit", "ber", "nya", "nyi", "ri", "ang"],
+    candidatePhoneme: "Gugus Konsonan /ny/ & /ng/ pada 'ber-nya-nyi'",
+    candidateDesc: "Konsonan nasal ganda terucap utuh; ritme intonasi kalimat deklaratif terjaga",
+    wordsPerMinute: 58,
+    initialAccuracy: 97,
   },
 ];
 
@@ -53,6 +64,8 @@ export default function LandingPage() {
   const [currentTimeSec, setCurrentTimeSec] = useState(14);
   const [speed, setSpeed] = useState<"0.75x" | "1.0x">("1.0x");
   const [isVerified, setIsVerified] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>("");
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   // Playback simulation
   useEffect(() => {
@@ -65,6 +78,50 @@ export default function LandingPage() {
     }, speed === "0.75x" ? 1300 : 1000);
     return () => clearInterval(interval);
   }, [isPlaying, speed]);
+
+  // Scroll-triggered animations and scroll progress observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
+    );
+
+    const elements = document.querySelectorAll(".lp-scroll-reveal");
+    elements.forEach((el) => observer.observe(el));
+
+    const handleScroll = () => {
+      const winScroll = document.documentElement.scrollTop || document.body.scrollTop;
+      const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      if (height > 0) {
+        setScrollProgress(Math.min(100, Math.max(0, (winScroll / height) * 100)));
+      }
+
+      const sections = ["konsol", "alur", "peran", "etika"];
+      const scrollPosition = window.scrollY + 140;
+      for (const sectionId of [...sections].reverse()) {
+        const el = document.getElementById(sectionId);
+        if (el && el.offsetTop <= scrollPosition) {
+          setActiveSection(sectionId);
+          return;
+        }
+      }
+      setActiveSection("");
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
 
   function handleSelectStudent(student: StudentSample) {
     setSelectedStudent(student);
@@ -84,43 +141,102 @@ export default function LandingPage() {
     setIsVerified(true);
   }
 
+  function handleSmoothScroll(e: React.MouseEvent<HTMLAnchorElement>, targetId: string) {
+    e.preventDefault();
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    const yOffset = -96; // Offset so section lands comfortably below the floating pill navbar
+    const y = target.getBoundingClientRect().top + window.pageYOffset + yOffset;
+    window.scrollTo({
+      top: y,
+      behavior: "smooth",
+    });
+    if (window.history?.pushState) {
+      window.history.pushState(null, "", `#${targetId}`);
+    }
+  }
+
   const activeSyllableIdx = Math.floor((currentTimeSec / 32) * selectedStudent.syllables.length);
   const activeWaveBarIdx = Math.floor((currentTimeSec / 32) * WAVE_BARS.length);
 
   return (
     <div className="lp-page">
-      {/* Navigation Bar */}
-      <header className="lp-wrap lp-bar lp-anim-1">
-        <Link href="/" className="lp-brand-link" aria-label="Halaman Beranda Dyscovery">
-          <Image src="/brand/logo-horizontal.svg" alt="Dyscovery" width={152} height={36} priority />
-        </Link>
-
-        <nav aria-label="Navigasi Utama">
-          <ul className="lp-nav-links">
-            <li>
-              <a href="#alur" className="lp-nav-link">
-                Alur Observasi
-              </a>
-            </li>
-            <li>
-              <a href="#peran" className="lp-nav-link">
-                Tiga Peran
-              </a>
-            </li>
-            <li>
-              <a href="#etika" className="lp-nav-link">
-                Prinsip Etis
-              </a>
-            </li>
-          </ul>
-        </nav>
-
-        <div className="lp-nav-actions">
-          <Link href="/masuk" className="lp-btn lp-btn-secondary">
-            Masuk sebagai guru
+      {/* Floating Capsule / Pill Sticky Navigation Bar (Matching Screenshot Reference) */}
+      <div className="lp-navbar-container">
+        <header className="lp-pill-navbar" role="banner">
+          <Link
+            href="/"
+            className="lp-pill-brand"
+            aria-label="Halaman Beranda Dyscovery"
+            onClick={(e) => {
+              if (window.location.pathname === "/") {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }
+            }}
+          >
+            <div className="lp-pill-logo-badge">
+              <Image src="/brand/logo-symbol.svg" alt="Dyscovery" width={24} height={24} priority />
+            </div>
+            <div className="lp-pill-brand-text">
+              <span className="lp-pill-brand-title">Dyscovery</span>
+              <span className="lp-pill-brand-subtitle">Platform Observasi Literasi</span>
+            </div>
           </Link>
-        </div>
-      </header>
+
+          <nav aria-label="Navigasi Utama" className="lp-pill-nav">
+            <ul className="lp-pill-nav-links">
+              <li>
+                <a
+                  href="#konsol"
+                  className={`lp-pill-nav-link ${activeSection === "konsol" ? "active" : ""}`}
+                  onClick={(e) => handleSmoothScroll(e, "konsol")}
+                >
+                  Konsol Observasi
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#alur"
+                  className={`lp-pill-nav-link ${activeSection === "alur" ? "active" : ""}`}
+                  onClick={(e) => handleSmoothScroll(e, "alur")}
+                >
+                  Alur Observasi
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#peran"
+                  className={`lp-pill-nav-link ${activeSection === "peran" ? "active" : ""}`}
+                  onClick={(e) => handleSmoothScroll(e, "peran")}
+                >
+                  Tiga Peran
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#etika"
+                  className={`lp-pill-nav-link ${activeSection === "etika" ? "active" : ""}`}
+                  onClick={(e) => handleSmoothScroll(e, "etika")}
+                >
+                  Prinsip Etis
+                </a>
+              </li>
+            </ul>
+          </nav>
+
+          <div className="lp-pill-actions">
+            <Link href="/masuk" className="lp-pill-btn-cta">
+              Ruang Guru
+            </Link>
+          </div>
+
+          {/* Reading Progress Indicator Bar */}
+          <div className="lp-pill-progress-track" aria-hidden="true">
+            <div className="lp-pill-progress-bar" style={{ width: `${scrollProgress}%` }} />
+          </div>
+        </header>
+      </div>
 
       <main>
         {/* Hero Section */}
@@ -141,7 +257,11 @@ export default function LandingPage() {
                 <Link href="/masuk" className="lp-btn lp-btn-primary">
                   Masuk ke Ruang Guru
                 </Link>
-                <a href="#alur" className="lp-btn lp-btn-secondary">
+                <a
+                  href="#alur"
+                  className="lp-btn lp-btn-secondary"
+                  onClick={(e) => handleSmoothScroll(e, "alur")}
+                >
                   Pelajari alur observasi
                 </a>
               </div>
@@ -168,7 +288,12 @@ export default function LandingPage() {
             </div>
 
             {/* Master Interactive Analytics Console (Fragment data-ui="true") */}
-            <div className="lp-console-stage lp-anim-6" data-ui="true" aria-label="Pratinjau Konsol Observasi Guru">
+            <div
+              id="konsol"
+              className="lp-console-stage lp-anim-6 lp-scroll-reveal"
+              data-ui="true"
+              aria-label="Pratinjau Konsol Observasi Guru"
+            >
               <div className="lp-console-head" data-ui="true">
                 <div className="lp-console-tabs" data-ui="true" role="tablist" aria-label="Pilih sampel siswa">
                   {SAMPLES.map((s) => (
@@ -356,10 +481,13 @@ export default function LandingPage() {
         <section id="alur" className="lp-section lp-section-alt" aria-labelledby="judul-alur">
           <div className="lp-wrap lp-workflow-layout">
             <div className="lp-workflow-sticky lp-anim-11">
-              <h2 id="judul-alur">
-                Empat langkah dari kelas<br />
-                sampai keluarga
-              </h2>
+              <div className="lp-section-title-row">
+                <h2 id="judul-alur">
+                  Empat langkah<br />
+                  observasi kelas
+                </h2>
+                <span className="lp-header-side-pill">Pos 01 — 04</span>
+              </div>
               <p>
                 Siklus observasi membaca yang melindungi kenyamanan anak dan mempertahankan kendali keputusan di tangan
                 guru.
@@ -369,9 +497,9 @@ export default function LandingPage() {
                 <Image
                   src="/mascot/piko-guide.png"
                   alt="Piko memandu alur"
-                  width={120}
-                  height={120}
-                  className="lp-piko-animated"
+                  width={160}
+                  height={160}
+                  className="lp-workflow-piko-img lp-piko-animated"
                 />
                 <div>
                   <strong>Alur Aman Kelas</strong>
@@ -382,7 +510,7 @@ export default function LandingPage() {
 
             <div className="lp-workflow-stages">
               {/* Stage Block A: Sesi Kelas & Interaksi Siswa */}
-              <article className="lp-stage-block lp-anim-12">
+              <article className="lp-stage-block lp-scroll-reveal lp-delay-1">
                 <div className="lp-stage-header">
                   <span className="lp-stage-badge">Fase 1: Pendampingan Kelas</span>
                   <h3 className="lp-stage-title">Persiapan Sesi & Mode Siswa Taktil</h3>
@@ -408,9 +536,10 @@ export default function LandingPage() {
                     <span className="lp-tile-box" data-ui="true">K</span>
                     <span className="lp-tile-box" data-ui="true">E</span>
                     <span className="lp-tile-box" data-ui="true">L</span>
-                    <span className="lp-tile-box" data-ui="true">A</span>
-                    <span className="lp-tile-box" data-ui="true">P</span>
-                    <span className="lp-tile-box" data-ui="true">A</span>
+                    <span className="lp-tile-box" data-ui="true">I</span>
+                    <span className="lp-tile-box" data-ui="true">N</span>
+                    <span className="lp-tile-box" data-ui="true">C</span>
+                    <span className="lp-tile-box" data-ui="true">I</span>
                   </div>
 
                   <div style={{ color: "var(--lp-muted)", fontSize: 13, marginTop: 4 }}>
@@ -420,7 +549,7 @@ export default function LandingPage() {
               </article>
 
               {/* Stage Block B: Telaah Guru & Rujukan */}
-              <article className="lp-stage-block lp-anim-13">
+              <article className="lp-stage-block lp-scroll-reveal lp-delay-2">
                 <div className="lp-stage-header">
                   <span className="lp-stage-badge">Fase 2: Analisis & Kolaborasi</span>
                   <h3 className="lp-stage-title">Telaah Audio 0.75x & Rujukan Terarah</h3>
@@ -459,11 +588,14 @@ export default function LandingPage() {
         {/* Section 3: Three Roles (Asymmetric Spotlight Layout) */}
         <section id="peran" className="lp-section" aria-labelledby="judul-peran">
           <div className="lp-wrap">
-            <header className="lp-section-header">
-              <h2 id="judul-peran">
-                Satu laporan untuk<br />
-                tiga pihak
-              </h2>
+            <header className="lp-section-header lp-scroll-reveal">
+              <div className="lp-section-title-row">
+                <h2 id="judul-peran">
+                  Satu laporan untuk<br />
+                  tiga pihak
+                </h2>
+                <span className="lp-header-side-pill">Tiga Ruang Kerja</span>
+              </div>
               <p>
                 Menjembatani pemahaman kelas, pengasuhan keluarga, dan pandangan tenaga ahli dalam satu wadah yang etis.
               </p>
@@ -471,7 +603,7 @@ export default function LandingPage() {
 
             <div className="lp-roles-asymmetric">
               {/* Featured Role: Guru Kelas with Real UI Picture Fragment */}
-              <article className="lp-role-feature lp-anim-14">
+              <article className="lp-role-feature lp-scroll-reveal lp-delay-1">
                 <span className="lp-role-badge">Pendidik Utama</span>
                 <h3>Dasbor Guru Kelas</h3>
                 <p>
@@ -492,24 +624,24 @@ export default function LandingPage() {
 
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     <div style={{ fontWeight: 800, color: "var(--lp-ink)" }}>
-                      Bima Aditia • Kelas 2A (Membaca Mandiri)
+                      Nadia Safitri • Kelas 2C (Membaca Mandiri)
                     </div>
                     <div style={{ color: "var(--lp-muted)", fontSize: 13 }}>
-                      Catatan: Siswa lancar pada suku kata terbuka, pengulangan fonem /p/ terverifikasi mandiri.
+                      Catatan: Siswa membaca lancar pada suku kata terbuka dan tertutup; artikulasi fonem /p/ dan /t/ terverifikasi mandiri.
                     </div>
                   </div>
 
                   <div style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13, fontWeight: 700 }}>
-                    <span style={{ color: "var(--lp-primary)" }}>Kelancaran: 48 KPM</span>
+                    <span style={{ color: "var(--lp-primary)" }}>Kelancaran: 54 KPM</span>
                     <span>•</span>
-                    <span style={{ color: "var(--lp-emerald)" }}>Akurasi: 94%</span>
+                    <span style={{ color: "var(--lp-emerald)" }}>Akurasi: 95%</span>
                   </div>
                 </div>
               </article>
 
               {/* Secondary Roles Stack */}
               <div className="lp-role-stack">
-                <article className="lp-role-subcard lp-anim-15">
+                <article className="lp-role-subcard lp-scroll-reveal lp-delay-2">
                   <span className="lp-role-badge">Keluarga</span>
                   <h3>Orang Tua & Wali</h3>
                   <p>
@@ -517,7 +649,7 @@ export default function LandingPage() {
                   </p>
                 </article>
 
-                <article className="lp-role-subcard lp-anim-16">
+                <article className="lp-role-subcard lp-scroll-reveal lp-delay-3">
                   <span className="lp-role-badge">Tenaga Ahli</span>
                   <h3>Psikolog Mitra</h3>
                   <p>
@@ -532,11 +664,14 @@ export default function LandingPage() {
         {/* Section 4: Ethical Guardrails — Narrative Split */}
         <section id="etika" className="lp-section lp-section-alt" aria-labelledby="judul-etika">
           <div className="lp-wrap lp-ethics-split">
-            <div className="lp-ethics-lead">
-              <h2 id="judul-etika">
-                Prinsip etis dan<br />
-                batasan kerja
-              </h2>
+            <div className="lp-ethics-lead lp-scroll-reveal">
+              <div className="lp-section-title-row">
+                <h2 id="judul-etika">
+                  Prinsip etis dan<br />
+                  batasan kerja
+                </h2>
+                <span className="lp-header-side-pill">Etika Non-Klinis</span>
+              </div>
               <p>
                 Dyscovery dirancang khusus untuk mendukung pendidik tanpa menggantikan peran manusia. Kami menetapkan
                 batasan tegas demi perlindungan privasi anak dan akurasi observasi literasi.
@@ -558,7 +693,7 @@ export default function LandingPage() {
             </div>
 
             <div className="lp-ethics-list">
-              <div className="lp-ethics-item">
+              <div className="lp-ethics-item lp-scroll-reveal lp-delay-1">
                 <h3>Observasi, bukan diagnosis medis</h3>
                 <p>
                   Laporan Dyscovery adalah rangkuman observasi guru kelas mengenai pola membaca, bukan instrumen atau
@@ -566,7 +701,7 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              <div className="lp-ethics-item">
+              <div className="lp-ethics-item lp-scroll-reveal lp-delay-2">
                 <h3>AI hanya memberi kandidat</h3>
                 <p>
                   Algoritma kecerdasan buatan hanya menyarankan kemungkinan fonemik; guru tetap memegang wewenang
@@ -574,7 +709,7 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              <div className="lp-ethics-item">
+              <div className="lp-ethics-item lp-scroll-reveal lp-delay-3">
                 <h3>Izin rekaman audio terpisah</h3>
                 <p>
                   Berkas suara anak tidak pernah dibagikan ke pihak ketiga kecuali orang tua memilih mengaktifkannya secara
@@ -582,7 +717,7 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              <div className="lp-ethics-item">
+              <div className="lp-ethics-item lp-scroll-reveal lp-delay-4">
                 <h3>Akses berbagi berbatas waktu</h3>
                 <p>
                   Setiap tautan berbagi laporan ke psikolog memiliki batas waktu kedaluwarsa otomatis dan dapat dicabut
@@ -594,7 +729,7 @@ export default function LandingPage() {
         </section>
 
         {/* Section 5: Closing CTA */}
-        <section className="lp-close-section" aria-labelledby="judul-tutup">
+        <section className="lp-close-section lp-scroll-reveal" aria-labelledby="judul-tutup">
           <div className="lp-wrap lp-close-wrap">
             <Image
               src="/mascot/piko-cheer.png"
@@ -628,16 +763,19 @@ export default function LandingPage() {
 
             <ul className="lp-footer-links">
               <li>
-                <a href="#alur">Alur Observasi</a>
+                <a href="#konsol" onClick={(e) => handleSmoothScroll(e, "konsol")}>Konsol</a>
               </li>
               <li>
-                <a href="#peran">Tiga Peran</a>
+                <a href="#alur" onClick={(e) => handleSmoothScroll(e, "alur")}>Alur Observasi</a>
               </li>
               <li>
-                <a href="#etika">Prinsip Etis</a>
+                <a href="#peran" onClick={(e) => handleSmoothScroll(e, "peran")}>Tiga Peran</a>
               </li>
               <li>
-                <Link href="/masuk">Masuk Ruang Guru</Link>
+                <a href="#etika" onClick={(e) => handleSmoothScroll(e, "etika")}>Prinsip Etis</a>
+              </li>
+              <li>
+                <Link href="/masuk">Ruang Guru</Link>
               </li>
             </ul>
           </div>
