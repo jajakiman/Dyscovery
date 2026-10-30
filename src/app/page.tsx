@@ -220,7 +220,7 @@ export default function LandingPage() {
                 />
                 <div>
                   <strong>Alur Aman Kelas</strong>
-                  <p>Perangkat terkunci PIN saat di tangan siswa. Rekaman hanya dibuka dan diulas di dasbor guru.</p>
+                  <p>Siswa hanya melihat tampilan kegiatan, didampingi guru. Rekaman hanya dibuka dan diulas di dasbor guru.</p>
                 </div>
               </div>
             </div>
@@ -232,7 +232,7 @@ export default function LandingPage() {
                   <span className="lp-stage-badge">Fase 1: Pendampingan Kelas</span>
                   <h3 className="lp-stage-title">Persiapan Sesi & Mode Siswa Taktil</h3>
                   <p className="lp-stage-desc">
-                    Guru mengunci perangkat dengan PIN 4-digit agar siswa tetap berada dalam alur asesmen. Siswa membaca secara nyaman tanpa distraksi akun atau angka skor.
+                    Guru memulai sesi dan siswa langsung masuk ke tampilan kegiatan. Siswa membaca secara nyaman tanpa distraksi akun atau angka skor.
                   </p>
                 </div>
                 <div className="lp-step-preview" data-ui="true">
@@ -341,15 +341,15 @@ export default function LandingPage() {
 
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     <div style={{ fontWeight: 800, color: "var(--lp-ink)" }}>
-                      Panel Telaah Split-View & Kunci Akses Sesi
+                      Panel Telaah Split-View & Sesi Terdampingi
                     </div>
                     <div style={{ color: "var(--lp-muted)", fontSize: 13 }}>
-                      Dilengkapi pemutar audio lambat 0.75x, draf anotasi fonem otomatis, serta penguncian PIN 4-digit saat perangkat digunakan di kelas.
+                      Dilengkapi pemutar audio lambat 0.75x, draf anotasi fonem otomatis, serta tampilan kegiatan siswa yang didampingi guru di kelas.
                     </div>
                   </div>
 
                   <div style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13, fontWeight: 700 }}>
-                    <span style={{ color: "var(--lp-primary)" }}>PIN Akses Terkunci</span>
+                    <span style={{ color: "var(--lp-primary)" }}>Sesi Didampingi Guru</span>
                     <span>•</span>
                     <span style={{ color: "var(--lp-emerald)" }}>Verifikasi Manual & AI</span>
                   </div>

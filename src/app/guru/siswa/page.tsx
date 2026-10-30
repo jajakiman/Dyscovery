@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/ui/api";
 import { LogoutButton } from "@/lib/ui/logout-button";
-import { Modal } from "@/lib/ui/modal";
 import { UserProfileMenu } from "@/lib/ui/user-profile-menu";
 
 type Child = { id: string; display_name: string; grade: string };
@@ -49,7 +48,6 @@ export default function StudentRoster() {
 
   const [picked, setPicked] = useState<Child | null>(null);
   const [selectedMaterialId, setSelectedMaterialId] = useState<string>("");
-  const [lockModalOpen, setLockModalOpen] = useState(false);
   const [micTesting, setMicTesting] = useState(false);
   const [micLevel, setMicLevel] = useState(85);
   const [busy, setBusy] = useState(false);
@@ -132,41 +130,34 @@ export default function StudentRoster() {
     }, 200);
   }
 
-  async function proceedToLock() {
+  async function startSession() {
     if (!picked) return;
+    if (demo) return router.push("/guru/simulasi");
     setMessage("");
-    // Ensure draft session exists or create one
-    const target = drafts(picked.id)[0];
+    setBusy(true);
+    let sessionId = drafts(picked.id)[0]?.id;
     const assignment = assignments.find((item) => item.child_id === picked.id);
 
-    if (!target && assignment) {
-      setBusy(true);
+    if (!sessionId && assignment) {
       const res = await api<{ session?: Session }>("/api/assessment-sessions", {
         teacherAssignmentId: assignment.id,
         materialVersionId: selectedMaterialId || (materials[0]?.id ?? ""),
       });
-      setBusy(false);
-      if (!res.ok) {
+      if (!res.ok || !res.data.session) {
         setMessage(res.data.error ?? "Draf sesi tidak dapat dibuat.");
-        return;
+        return setBusy(false);
       }
-      await refresh();
+      sessionId = res.data.session.id;
     }
-    setLockModalOpen(true);
-  }
+    if (!sessionId) {
+      setMessage("Siswa ini belum memiliki penugasan sesi.");
+      return setBusy(false);
+    }
 
-  async function enter(sessionId: string) {
-    setBusy(true);
-    setMessage("");
-    if (drafts(picked?.id ?? "").find((s) => s.id === sessionId)?.status === "draft") {
-      await api(`/api/assessment-sessions/${sessionId}/start`, {});
-    }
+    await api(`/api/assessment-sessions/${sessionId}/start`, {});
     const result = await api("/api/teacher-mode/enter", { sessionId });
-    if (result.ok) {
-      setLockModalOpen(false);
-      return router.replace("/siswa");
-    }
-    setMessage(result.data.error ?? "Mode siswa tidak dapat dimulai.");
+    if (result.ok) return router.replace("/siswa");
+    setMessage(result.data.error ?? "Sesi kegiatan tidak dapat dimulai.");
     setBusy(false);
   }
 
@@ -177,10 +168,6 @@ export default function StudentRoster() {
     { tone: "lilac", value: countBy("in_progress"), label: "Sesi sedang berjalan", piko: "piko-listen" },
     { tone: "green", value: countBy("completed"), label: "Sesi selesai, siap ditinjau", piko: "piko-cheer" },
   ];
-
-  const pickedDrafts = picked ? drafts(picked.id) : [];
-  const target = pickedDrafts[0];
-  const assignment = picked ? assignments.find((item) => item.child_id === picked.id) : undefined;
 
   return (
     <div className="shell" data-ui="true">
@@ -230,7 +217,7 @@ export default function StudentRoster() {
             <strong>Satu siswa, satu sesi, didampingi guru.</strong>
           </div>
           <p className="roster-notice-text">
-            Periksa persetujuan orang tua dan mikrofon, lalu kunci kontrol guru sebelum memberikan perangkat kepada siswa.
+            Periksa persetujuan orang tua dan mikrofon, lalu mulai sesi membaca bersama siswa.
           </p>
         </div>
 
@@ -382,7 +369,7 @@ export default function StudentRoster() {
                 type="button"
                 className="btn secondary"
                 onClick={handleTestMic}
-                title="Periksa mikrofon perangkat guru sebelum dikunci ke mode siswa"
+                title="Periksa mikrofon perangkat sebelum sesi dimulai"
               >
                 {micTesting ? `Mengecek… (${micLevel}%)` : "Uji Mikrofon"}
               </button>
@@ -390,65 +377,15 @@ export default function StudentRoster() {
                 type="button"
                 className="btn primary"
                 disabled={busy}
-                onClick={() => void proceedToLock()}
+                onClick={() => void startSession()}
               >
-                Mulai Mode Siswa (Kunci Perangkat)
+                {busy ? "Memproses…" : "Mulai Sesi Membaca"}
               </button>
             </div>
+            {message && <p className="notice warn" role="alert">{message}</p>}
           </div>
         )}
       </main>
-
-      {/* Frame 17 (S11): Student Access Lock Security Modal */}
-      <Modal open={lockModalOpen || Boolean(picked && demo)} onClose={() => { setLockModalOpen(false); setPicked(null); }} titleId="lock-modal-title">
-        {picked && (
-          <div className="lock-modal-content">
-            <div className="lock-modal-badge">
-              <span>Keamanan perangkat</span>
-            </div>
-            <h2 id="lock-modal-title" className="lock-modal-title">Kunci mode siswa</h2>
-            <p className="lock-modal-desc">
-              Perangkat akan masuk ke Mode Siswa untuk sesi membaca. Siswa didampingi guru selama kegiatan tanpa skor atau angka yang menekan anak.
-            </p>
-
-            {demo && (
-              <div className="modal-section" style={{ margin: "12px 0 16px" }}>
-                <p className="muted small" style={{ marginTop: 0 }}>
-                  Alur 4 pos asesmen membaca: tebak benda, tebak hewan, susun kata, dan membaca nyaring dengan mikrofon.
-                </p>
-                <Link className="btn accent" href="/guru/simulasi" style={{ display: "inline-block", marginTop: 8 }}>
-                  Mulai simulasi alur membaca
-                </Link>
-              </div>
-            )}
-
-            <div className="guide-tray" style={{ fontSize: 13, margin: "12px 0 16px" }}>
-              <p><strong>Siswa:</strong> {picked.display_name} • Kelas {picked.grade}</p>
-              <p style={{ marginTop: 4 }}>Guru dapat kembali ke dasbor guru kapan pun dengan menekan tombol <em>Keluar Mode Siswa</em> tanpa perlu PIN.</p>
-            </div>
-
-            {message && <p className="notice warn" role="alert">{message}</p>}
-
-            <div className="modal-actions" style={{ marginTop: 20 }}>
-              <button type="button" className="btn secondary" onClick={() => { setLockModalOpen(false); setPicked(null); }}>
-                Batal
-              </button>
-              <button
-                type="button"
-                className="btn primary"
-                disabled={busy}
-                onClick={() => {
-                  const sId = target?.id || sessions[0]?.id || "";
-                  if (sId) void enter(sId);
-                  else router.replace("/siswa");
-                }}
-              >
-                {busy ? "Memproses…" : "Mulai Mode Siswa"}
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
     </div>
   );
 }
