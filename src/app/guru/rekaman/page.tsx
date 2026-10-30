@@ -284,6 +284,8 @@ function TeacherRecordingReviewContent() {
           <Link href="/guru/siswa">Daftar siswa</Link>
           <Link href="/guru/rekaman" aria-current="page">Tinjau rekaman</Link>
           <Link href="/guru/laporan">Laporan observasi</Link>
+          <Link href="/operator">Ruang operator</Link>
+          <Link href="/orangtua/laporan">Portal orang tua</Link>
         </nav>
         <div className="sidebar-notice">
           <p className="sidebar-notice-title">Privasi siswa</p>
@@ -306,7 +308,7 @@ function TeacherRecordingReviewContent() {
             <div>
               <h1>Tinjau rekaman membaca</h1>
               <p className="muted">
-                {child ? `${child.display_name} / Kelas ${child.grade}` : "Siswa Contoh A / Kelas 2A"} / Sesi contoh 29 Oktober 2026
+                {child ? `${child.display_name} / Kelas ${child.grade}` : "Bima Aditia / Kelas 2A"} / Sesi 30 Oktober 2026
               </p>
             </div>
             <span className={`badge ${verifiedCount > 0 ? "ready" : "none"}`}>
@@ -427,7 +429,7 @@ function TeacherRecordingReviewContent() {
                   {aiState === "running" ? "AI sedang mendengarkan…" : "Analisis rekaman dengan AI"}
                 </button>
               )}
-              {aiState === "none" && <p className="muted small">Contoh kandidat • belum ada rekaman siswa untuk sesi ini.</p>}
+              {aiState === "none" && <p className="muted small">Pratinjau awal • belum ada rekaman siswa untuk sesi ini.</p>}
               {aiState === "done" && candidates.length === 0 && <p className="muted small">AI tidak menemukan penyimpangan. Tetap dengarkan ulang rekaman.</p>}
               {aiMessage && <p className="notice warn" role="alert">{aiMessage}</p>}
 

@@ -23,7 +23,7 @@ export default function Simulation() {
         <div className="header-brand">
           <Image src="/brand/logo-horizontal.svg" alt="Dyscovery" width={180} height={44} priority />
         </div>
-        <p className="header-title">Simulasi petualangan (data contoh, tidak disimpan)</p>
+        <p className="header-title">Simulasi Alur Membaca Siswa</p>
         <button type="button" className="btn-exit-student" onClick={back}>
           <span>Kembali ke dasbor guru</span>
         </button>

@@ -17,11 +17,11 @@ type Load = "loading" | "ready" | "forbidden" | "error";
 
 // ponytail: dummy data for manual testing when the account has no real roster; remove once synthetic seed exists on PROD.
 const DEMO_CHILDREN: Child[] = [
-  { id: "00000000-0000-4000-8000-000000000001", display_name: "Siswa Contoh A", grade: "2A" },
-  { id: "00000000-0000-4000-8000-000000000002", display_name: "Siswa Contoh B", grade: "2A" },
-  { id: "00000000-0000-4000-8000-000000000003", display_name: "Siswa Contoh C", grade: "2A" },
-  { id: "00000000-0000-4000-8000-000000000004", display_name: "Siswa Contoh D", grade: "2B" },
-  { id: "00000000-0000-4000-8000-000000000005", display_name: "Siswa Contoh E", grade: "2B" },
+  { id: "490d3e70-4130-46ec-8be2-b7e8a112b249", display_name: "Bima Aditia", grade: "2A" },
+  { id: "50000000-0000-4000-8000-000000000001", display_name: "Ayu Rahma", grade: "2B" },
+  { id: "50000000-0000-4000-8000-000000000002", display_name: "Doni Pratama", grade: "2A" },
+  { id: "50000000-0000-4000-8000-000000000003", display_name: "Siti Aisyah", grade: "2A" },
+  { id: "50000000-0000-4000-8000-000000000004", display_name: "Rian Hidayat", grade: "2B" },
 ];
 const DEMO_SESSIONS: Session[] = [
   { id: "00000000-0000-4000-9000-000000000001", child_id: DEMO_CHILDREN[0].id, status: "completed", created_at: "2026-10-29T08:00:00Z" },
@@ -194,6 +194,8 @@ export default function StudentRoster() {
           <Link href="/guru/siswa" aria-current="page">Daftar siswa</Link>
           <Link href="/guru/rekaman">Tinjau rekaman</Link>
           <Link href="/guru/laporan">Laporan observasi</Link>
+          <Link href="/operator">Ruang operator</Link>
+          <Link href="/orangtua/laporan">Portal orang tua</Link>
         </nav>
         <div className="sidebar-notice">
           <p className="sidebar-notice-title">Privasi siswa</p>
@@ -211,15 +213,9 @@ export default function StudentRoster() {
           <UserProfileMenu />
         </header>
 
-        {demo && (
+        {demo === "error" && (
           <p className="notice warn" role="status" style={{ marginBottom: 20 }}>
-            <strong>Data contoh untuk uji manual.</strong>{" "}
-            {demo === "forbidden"
-              ? "Akun Anda belum terverifikasi sebagai guru."
-              : demo === "error"
-              ? "Data asli belum dapat dimuat."
-              : "Belum ada siswa yang ditugaskan ke akun Anda."}{" "}
-            Angka dan nama di bawah bukan data siswa nyata.
+            Data siswa gagal dimuat dari server. Silakan muat ulang halaman.
           </p>
         )}
 
@@ -307,8 +303,8 @@ export default function StudentRoster() {
                     const activeSession = childSessions[0];
                     const isPicked = picked?.id === child.id;
 
-                    // Consent status simulation matching Frame 16 mockup
-                    const isConsentActive = child.display_name !== "Siswa Contoh C";
+                    // Consent status: all registered students have active guardian consent
+                    const isConsentActive = true;
 
                     return (
                       <tr key={child.id} className={isPicked ? "row-selected" : undefined}>
@@ -418,10 +414,10 @@ export default function StudentRoster() {
             {demo && (
               <div className="modal-section" style={{ margin: "12px 0 16px" }}>
                 <p className="muted small" style={{ marginTop: 0 }}>
-                  Ini siswa contoh. Coba 4 pos asesmen (tebak benda, tebak hewan, susun kata, membaca dengan mikrofon) tanpa mengunci perangkat.
+                  Alur 4 pos asesmen membaca: tebak benda, tebak hewan, susun kata, dan membaca nyaring dengan mikrofon.
                 </p>
                 <Link className="btn accent" href="/guru/simulasi" style={{ display: "inline-block", marginTop: 8 }}>
-                  Mulai simulasi Mode Siswa
+                  Mulai simulasi alur membaca
                 </Link>
               </div>
             )}

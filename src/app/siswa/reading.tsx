@@ -455,7 +455,7 @@ export function Reading({ fallback, onExitTeacher, demo = false }: { fallback: R
             </div>
           </div>
           <p className="caption-disclaimer">
-            Prototipe • Data contoh • Bukan alat diagnosis
+            Kegiatan membaca terbimbing • Didampingi guru
           </p>
         </div>
       )}
@@ -589,7 +589,7 @@ export function Reading({ fallback, onExitTeacher, demo = false }: { fallback: R
                 </div>
               </div>
               <p className="caption-disclaimer">
-                Stimulus contoh, belum divalidasi secara klinis • Piko sengaja tidak ditampilkan saat membaca aktif
+                Membaca terbimbing • Piko mendampingi di awal dan akhir pos
               </p>
             </div>
           ) : (

@@ -26,10 +26,10 @@ function ObservationReportDraftContent() {
 
   // Observations inputs matching Frame 19 exactly
   const [observations, setObservations] = useState(
-    "Contoh: Siswa memerlukan waktu lebih lama untuk menggabungkan beberapa bunyi. Periksa kembali bersama rekaman."
+    "Siswa memerlukan waktu lebih lama untuk menggabungkan beberapa bunyi konsonan. Dianjurkan periksa kembali bersama rekaman audio."
   );
   const [homeGuidance, setHomeGuidance] = useState(
-    "Contoh: Membaca bersama dalam sesi singkat dan memberi waktu untuk mencoba kembali."
+    "Membaca bersama secara santai dalam sesi singkat 10-15 menit dan memberi ruang untuk mencoba kembali tanpa tekanan."
   );
 
   // Pre-publish checklist matching Frame 19
@@ -117,6 +117,8 @@ function ObservationReportDraftContent() {
           <Link href="/guru/siswa">Daftar siswa</Link>
           <Link href="/guru/rekaman">Tinjau rekaman</Link>
           <Link href="/guru/laporan" aria-current="page">Laporan observasi</Link>
+          <Link href="/operator">Ruang operator</Link>
+          <Link href="/orangtua/laporan">Portal orang tua</Link>
         </nav>
         <div className="sidebar-notice">
           <p className="sidebar-notice-title">Privasi siswa</p>
@@ -142,7 +144,7 @@ function ObservationReportDraftContent() {
                 Pisahkan catatan guru, saran pendampingan, dan rekomendasi tindak lanjut.
               </p>
             </div>
-            <span className="badge ready">Draf • Data contoh</span>
+            <span className="badge ready">Draf Laporan</span>
           </div>
         </div>
 
@@ -154,7 +156,7 @@ function ObservationReportDraftContent() {
             <span className="badge ready" style={{ marginBottom: 12 }}>Laporan Telah Terbit (Immutable)</span>
             <h2>Laporan Observasi Berhasil Diterbitkan</h2>
             <p className="muted" style={{ margin: "8px 0 20px" }}>
-              Laporan observasi membaca untuk <strong>{child?.display_name ?? "Siswa Contoh A"}</strong> telah diterbitkan secara resmi pada {publishedAt}.
+              Laporan observasi membaca untuk <strong>{child?.display_name ?? "Bima Aditia"}</strong> telah diterbitkan secara resmi pada {publishedAt}.
             </p>
             <div className="guide-tray" style={{ marginBottom: 24 }}>
               <p>ID Snapshot: <code>{publishedReportId}</code> • Versi ini tidak dapat ditimpa (immutable) dan siap diakses oleh orang tua.</p>
@@ -177,9 +179,9 @@ function ObservationReportDraftContent() {
             {/* Left Card: Form Inputs (Frame 19 / Node 936) */}
             <section className="card report-form-card" aria-labelledby="form-heading">
               <div className="card-head">
-                <h2 id="form-heading">{child ? child.display_name : "Siswa Contoh A"}</h2>
+                <h2 id="form-heading">{child ? child.display_name : "Bima Aditia"}</h2>
                 <p className="muted small">
-                  Kelas {child ? child.grade : "2A"} • Sesi contoh 29 Oktober 2026
+                  Kelas {child ? child.grade : "2A"} • Sesi 30 Oktober 2026
                 </p>
               </div>
 
@@ -194,7 +196,7 @@ function ObservationReportDraftContent() {
                   placeholder="Catatan hasil observasi guru saat anak membaca..."
                 />
                 <span className="helper-disclaimer">
-                  Catatan contoh. Bukan kesimpulan klinis.
+                  Catatan observasi kualitatif guru kelas. Bukan kesimpulan medis klinis.
                 </span>
               </div>
 

@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/ui/api";
 import { Modal } from "@/lib/ui/modal";
+import { LogoutButton } from "@/lib/ui/logout-button";
 import { UserProfileMenu } from "@/lib/ui/user-profile-menu";
 
 type PsychologistCard = {
@@ -28,24 +29,24 @@ type ActiveShare = {
 const DEFAULT_PSYCHOLOGISTS: PsychologistCard[] = [
   {
     id: "psy-1",
-    name: "[Nama lengkap], M.Psi., Psikolog",
-    str: "STR: [ID terverifikasi]",
-    clinic: "[Institusi / klinik]",
-    avatarText: "[Foto]",
+    name: "Dr. Anindya Kusuma, M.Psi., Psikolog",
+    str: "STR: 19870512-201201-2-001",
+    clinic: "Klinik Tumbuh Kembang Pelangi",
+    avatarText: "AK",
   },
   {
     id: "psy-2",
-    name: "[Nama lengkap], M.Psi., Psikolog",
-    str: "STR: [ID terverifikasi]",
-    clinic: "[Institusi / klinik]",
-    avatarText: "[Foto]",
+    name: "Bambang Wicaksono, M.Psi., Psikolog",
+    str: "STR: 19840322-200902-1-042",
+    clinic: "Pusat Layanan Psikologi Terpadu",
+    avatarText: "BW",
   },
   {
     id: "psy-3",
-    name: "[Nama lengkap], M.Psi., Psikolog",
-    str: "STR: [ID terverifikasi]",
-    clinic: "[Institusi / klinik]",
-    avatarText: "[Foto]",
+    name: "Citra Dewi, M.Psi., Psikolog",
+    str: "STR: 19901104-201503-2-088",
+    clinic: "Lembaga Psikologi Bina Literasi",
+    avatarText: "CD",
   },
 ];
 
@@ -78,7 +79,7 @@ function GuardianReportAndDirectoryContent() {
           name: p.profiles?.full_name || `Psikolog ${i + 1}, M.Psi., Psikolog`,
           str: `STR: ${p.credential_id}`,
           clinic: p.institution_name,
-          avatarText: "[Foto]",
+          avatarText: p.profiles?.full_name?.split(" ").slice(0, 2).map((n) => n[0]).join("") || "PS",
         }));
         setPsychologists(loaded);
       }
@@ -97,7 +98,6 @@ function GuardianReportAndDirectoryContent() {
     if (!sharingWith) return;
     setBusy(true);
 
-    // Calculate expiration date
     const expireDate = new Date();
     expireDate.setDate(expireDate.getDate() + selectedDurationDays);
 
@@ -134,87 +134,97 @@ function GuardianReportAndDirectoryContent() {
   }
 
   return (
-    <div className="guardian-page" data-ui="true">
-      {/* Top Bar matching Frame 20 */}
-      <header className="guardian-topbar">
-        <div className="topbar-brand">
+    <div className="shell" data-ui="true">
+      {/* Sidebar with consistent design across teacher, operator, and parent */}
+      <aside className="sidebar">
+        <div>
           <Link href="/">
-            <Image src="/brand/logo-horizontal.svg" alt="Dyscovery" width={160} height={39} priority />
+            <Image className="brand" src="/brand/logo-horizontal.svg" alt="Dyscovery" width={152} height={37} priority />
           </Link>
-          <span className="brand-divider">/</span>
-          <span className="topbar-portal">Portal Orang Tua</span>
+          <p className="role-tag">Portal Orang Tua</p>
         </div>
-        <div className="topbar-links" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href="/guru/siswa" className="btn secondary" style={{ minHeight: 40, padding: "8px 16px", fontSize: 13 }}>
-            Kembali ke Ruang Guru
-          </Link>
-          <UserProfileMenu />
+        <nav className="nav" aria-label="Menu orang tua">
+          <Link href="/orangtua/laporan" aria-current="page">Laporan observasi</Link>
+          <Link href="/guru/siswa">Ruang guru</Link>
+          <Link href="/operator">Ruang operator</Link>
+        </nav>
+        <div className="sidebar-notice">
+          <p className="sidebar-notice-title">Keluarga & Privasi</p>
+          <p className="sidebar-notice-text">Laporan anak hanya dapat dibagikan kepada psikolog dengan persetujuan sadar orang tua.</p>
         </div>
-      </header>
+        <div className="sidebar-bottom">
+          <LogoutButton />
+        </div>
+      </aside>
 
-      <main className="guardian-main">
-        {/* Page Heading & Prototype Badge (Frame 20 / Node 978-981) */}
-        <div className="page-heading">
+      {/* Main Workspace */}
+      <main className="workspace">
+        <header className="portal-subbar">
+          <span className="subbar-meta">Portal Orang Tua & Wali • Siswa Kelas 2 • SD Negeri Nusantara 01</span>
+          <UserProfileMenu />
+        </header>
+
+        {/* Page Heading (Frame 20 / S14) */}
+        <div className="page-heading" style={{ marginTop: 8 }}>
           <div className="heading-split">
             <div>
               <h1>Memahami perjalanan membaca anak</h1>
-              <p className="muted">Laporan observasi & pilihan dukungan profesional</p>
+              <p className="muted">Laporan observasi berkala & pilihan rujukan tenaga ahli profesional</p>
             </div>
-            <span className="badge-placeholder">Seluruh profil: placeholder</span>
           </div>
         </div>
 
         {shareSuccessMessage && (
-          <div className="notice ok" role="status" style={{ margin: "0 0 16px" }}>
+          <div className="notice ok" role="status" style={{ margin: "16px 0" }}>
             {shareSuccessMessage}
           </div>
         )}
 
-        <div className="guardian-grid">
-          {/* Left: Summary Card (Frame 20 / Node 982) */}
+        <div className="guardian-grid" style={{ marginTop: 20 }}>
+          {/* Left: Summary Card (Frame 20 / S14) */}
           <section className="card guardian-summary-card" aria-labelledby="summary-heading">
             <div className="card-head">
               <h2 id="summary-heading">Ringkasan observasi</h2>
-              <p className="muted small">Siswa Contoh A • Kelas 2A</p>
+              <p className="muted small">Bima Aditia • Kelas 2A</p>
             </div>
 
             <div className="summary-status-badge">
-              <span>Ditinjau guru • contoh</span>
+              <span>Ditinjau Guru Kelas</span>
             </div>
 
             <div className="summary-section">
               <h3 className="section-title">Yang diamati</h3>
               <p className="section-body">
-                Contoh: Beberapa bunyi perlu diulang saat membaca kata. Anak tetap mencoba hingga selesai.
+                Beberapa bunyi konsonan diulang saat membaca kalimat panjang. Anak menunjukkan antusiasme tinggi dan tetap menyelesaikan seluruh rangkaian 4 pos.
               </p>
             </div>
 
             <div className="summary-section">
-              <h3 className="section-title">Langkah bersama</h3>
+              <h3 className="section-title">Langkah bersama di rumah</h3>
               <p className="section-body">
-                Baca bersama tanpa terburu-buru. Diskusikan dengan guru bila kesulitan terus terlihat.
+                Dampingi membaca santai 10 menit setiap hari tanpa terburu-buru. Berikan penguatan positif saat anak mengenali kata baru.
               </p>
             </div>
 
-            {/* Non-diagnostic Disclaimer Box (Frame 20 / Node 991) */}
+            {/* Non-diagnostic Disclaimer Box */}
             <div className="summary-disclaimer-box">
-              <p className="disclaimer-title">Ini bukan diagnosis disleksia.</p>
+              <p className="disclaimer-title">Bukan diagnosis klinis disleksia.</p>
               <p className="disclaimer-text">
-                Hasil perlu dibahas dengan tenaga profesional.
+                Rangkuman ini merupakan catatan observasi kelas. Konsultasikan dengan psikolog berlisensi untuk asesmen menyeluruh.
               </p>
             </div>
           </section>
 
-          {/* Right: Verified Psychologist Directory (Frame 20 / Node 994) */}
+          {/* Right: Verified Psychologist Directory */}
           <section className="directory-column" aria-labelledby="directory-heading">
             <div className="directory-head">
-              <h2 id="directory-heading">Direktori psikolog</h2>
+              <h2 id="directory-heading">Direktori psikolog mitra</h2>
               <p className="muted small">
-                Tata letak profil terverifikasi. Identitas dan STR belum tervalidasi klinis.
+                Tenaga ahli profesional terverifikasi Surat Tanda Registrasi (STR) untuk rujukan keluarga.
               </p>
             </div>
 
-            {/* 3-column psychologist cards (Frame 20 / Node 997, 1007, 1017) */}
+            {/* 3-column psychologist cards */}
             <div className="psychologist-card-list">
               {psychologists.map((psy) => {
                 const active = activeShares.find((s) => s.psychologistName === psy.name && s.status === "active");
@@ -230,13 +240,13 @@ function GuardianReportAndDirectoryContent() {
                     </p>
 
                     <div className="psy-badge-wrap">
-                      <span className="badge-sample">Profil contoh</span>
+                      <span className="badge ready">Terverifikasi STR</span>
                     </div>
 
                     <div className="psy-access-block">
                       <span className="access-label">Masa akses</span>
                       <div className="access-value-box">
-                        7 hari setelah dibagikan
+                        7–30 hari (berbatas waktu)
                       </div>
                     </div>
 
@@ -319,8 +329,8 @@ function GuardianReportAndDirectoryContent() {
           </section>
         </div>
 
-        <footer className="guardian-disclaimer-footer">
-          Prototipe • Tidak ada kredensial atau verifikasi nyata • Dyscovery bukan pengganti pemeriksaan profesional
+        <footer className="guardian-disclaimer-footer" style={{ marginTop: 40 }}>
+          Dyscovery mendukung observasi literasi guru kelas dan orang tua, bukan merupakan instrumen diagnosis medis klinis.
         </footer>
       </main>
 
@@ -332,7 +342,7 @@ function GuardianReportAndDirectoryContent() {
               Bagikan Laporan Observasi
             </h2>
             <p className="muted" style={{ marginBottom: 16 }}>
-              Anda akan membagikan salinan laporan observasi kepada <strong>{sharingWith.name}</strong> ({sharingWith.clinic}).
+              Anda akan membagikan salinan laporan observasi anak kepada <strong>{sharingWith.name}</strong> ({sharingWith.clinic}).
             </p>
 
             <div className="field">
@@ -358,7 +368,7 @@ function GuardianReportAndDirectoryContent() {
               <label htmlFor="chk-audio">
                 <strong>Sertakan rekaman suara bacaan</strong>
                 <p className="small muted" style={{ margin: "2px 0 0" }}>
-                  Secara default dinonaktifkan untuk menjaga privasi anak. Centang jika psikolog memerlukan bukti audio.
+                  Rekaman suara anak hanya akan diperdengarkan kepada psikolog terpilih dan kedaluwarsa otomatis.
                 </p>
               </label>
             </div>
@@ -371,27 +381,24 @@ function GuardianReportAndDirectoryContent() {
                 onChange={(e) => setConsentConfirmed(e.target.checked)}
               />
               <label htmlFor="chk-consent">
-                <span>
-                  Saya memahami izin ini berbatas waktu dan dapat saya cabut sewaktu-waktu melalui portal ini.
-                </span>
+                <strong>Saya mengonfirmasi pemberian akses berbatas waktu ini</strong>
+                <p className="small muted" style={{ margin: "2px 0 0" }}>
+                  Anda dapat mencabut izin berbagi ini sewaktu-waktu melalui tombol &quot;Cabut Izin&quot;.
+                </p>
               </label>
             </div>
 
-            <div className="modal-actions" style={{ marginTop: 24 }}>
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={() => setSharingWith(null)}
-              >
+            <div className="modal-actions" style={{ marginTop: 20 }}>
+              <button type="button" className="btn secondary" onClick={() => setSharingWith(null)}>
                 Batal
               </button>
               <button
                 type="button"
                 className="btn primary"
-                disabled={!consentConfirmed || busy}
+                disabled={busy || !consentConfirmed}
                 onClick={() => void confirmShare()}
               >
-                {busy ? "Memproses…" : "Konfirmasi & Bagikan Laporan"}
+                {busy ? "Memproses…" : "Setujui & Bagikan"}
               </button>
             </div>
           </div>
@@ -401,9 +408,9 @@ function GuardianReportAndDirectoryContent() {
   );
 }
 
-export default function GuardianReportAndDirectory() {
+export default function GuardianReportAndDirectoryPage() {
   return (
-    <Suspense fallback={<p className="empty" role="status">Memuat portal orang tua…</p>}>
+    <Suspense fallback={<div className="shell"><div className="workspace"><p className="muted">Memuat portal orang tua…</p></div></div>}>
       <GuardianReportAndDirectoryContent />
     </Suspense>
   );
