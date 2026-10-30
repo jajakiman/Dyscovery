@@ -144,7 +144,7 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 .dash-stat .gd-stat-link { position: absolute; inset: 0; padding: 18px 20px; display: grid; align-content: start; gap: 4px; text-decoration: none; }
 .dash-stat:has(.gd-stat-link):hover { filter: brightness(0.97); }
 .gd-section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-.gd-section-head h2 { font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.gd-section-head h2 { font-size: 20px; }
 .gd-filters { display: flex; gap: 8px; }
 .gd-filters input, .gd-filters select { min-height: 44px; padding: 8px 12px; border: 1px solid #cbd4db; border-radius: var(--radius-control); background: var(--white); }
 .gd-students { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -156,12 +156,12 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 .gd-chip.tone-apricot { background: var(--apricot-soft); }
 .gd-chip.tone-lilac { background: #ece9f6; }
 .gd-chip.tone-green { background: var(--green-bg); color: var(--green); }
-.gd-arrow { flex: none; display: grid; place-items: center; width: 44px; height: 44px; min-height: 44px; border-radius: 50%; background: var(--apricot); color: var(--ink); font-size: 20px; font-weight: 800; text-decoration: none; }
+.gd-card-btn { flex: none; min-height: 44px; padding: 8px 16px; }
 .gd-side { padding: 22px; display: grid; gap: 14px; position: sticky; top: 16px; }
 .gd-side h2 { font-size: 18px; }
 .gd-side-empty { display: grid; justify-items: center; gap: 8px; text-align: center; padding: 12px 0; }
 .gd-review { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
-.gd-review a { display: grid; padding: 12px 14px; border-radius: 14px; background: var(--green-bg); text-decoration: none; border-left: 4px solid var(--green); }
+.gd-review a { display: grid; padding: 12px 14px; border-radius: 14px; background: var(--green-bg); text-decoration: none; }
 .gd-review a:hover { filter: brightness(0.97); }
 .gd-review strong { color: var(--ink); }
 .heading-split { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }

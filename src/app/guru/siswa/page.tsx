@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/ui/api";
+import { rms, SILENCE_RMS } from "@/lib/ui/mic";
 import { LogoutButton } from "@/lib/ui/logout-button";
 import { UserProfileMenu } from "@/lib/ui/user-profile-menu";
 
@@ -14,20 +15,15 @@ type Assignment = { id: string; child_id: string };
 type Material = { id: string; material_key: string; version: number };
 type Load = "loading" | "ready" | "forbidden" | "error";
 
-// ponytail: dummy data for manual testing when the account has no real roster; remove once synthetic seed exists on PROD.
-const DEMO_CHILDREN: Child[] = [
-  { id: "490d3e70-4130-46ec-8be2-b7e8a112b249", display_name: "Bima Aditia", grade: "2A" },
-  { id: "50000000-0000-4000-8000-000000000001", display_name: "Ayu Rahma", grade: "2B" },
-  { id: "50000000-0000-4000-8000-000000000002", display_name: "Doni Pratama", grade: "2A" },
-  { id: "50000000-0000-4000-8000-000000000003", display_name: "Siti Aisyah", grade: "2A" },
-  { id: "50000000-0000-4000-8000-000000000004", display_name: "Rian Hidayat", grade: "2B" },
-];
-const DEMO_SESSIONS: Session[] = [
-  { id: "00000000-0000-4000-9000-000000000001", child_id: DEMO_CHILDREN[0].id, status: "completed", created_at: "2026-10-29T08:00:00Z" },
-  { id: "00000000-0000-4000-9000-000000000002", child_id: DEMO_CHILDREN[1].id, status: "in_progress", created_at: "2026-10-30T08:00:00Z" },
-  { id: "00000000-0000-4000-9000-000000000003", child_id: DEMO_CHILDREN[2].id, status: "draft", created_at: "2026-10-30T09:00:00Z" },
-  { id: "00000000-0000-4000-9000-000000000004", child_id: DEMO_CHILDREN[3].id, status: "draft", created_at: "2026-10-30T09:30:00Z" },
-];
+type Mic = "idle" | "testing" | "ok" | "quiet" | "denied" | "missing";
+const MIC_TEXT: Record<Mic, string> = {
+  idle: "",
+  testing: "Mendengarkan… ucapkan sesuatu ke mikrofon.",
+  ok: "Mikrofon menangkap suara dengan baik.",
+  quiet: "Suara terlalu pelan. Dekatkan mikrofon lalu uji lagi.",
+  denied: "Izin mikrofon ditolak. Izinkan mikrofon di pengaturan peramban.",
+  missing: "Mikrofon tidak ditemukan pada perangkat ini.",
+};
 
 const initials = (name: string) =>
   name
@@ -48,11 +44,9 @@ export default function StudentRoster() {
 
   const [picked, setPicked] = useState<Child | null>(null);
   const [selectedMaterialId, setSelectedMaterialId] = useState<string>("");
-  const [micTesting, setMicTesting] = useState(false);
-  const [micLevel, setMicLevel] = useState(85);
+  const [mic, setMic] = useState<Mic>("idle");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const [demo, setDemo] = useState<null | "empty" | "forbidden" | "error">(null);
   const [teacherName, setTeacherName] = useState("");
 
   useEffect(() => {
@@ -73,27 +67,21 @@ export default function StudentRoster() {
     ]);
 
     if (kids.status === 401) return router.replace("/masuk");
-    const realKids = kids.ok ? kids.data?.children ?? [] : [];
-    if (realKids.length === 0) {
-      setDemo(kids.status === 403 ? "forbidden" : kids.ok && sess.ok ? "empty" : "error");
-      setChildren(DEMO_CHILDREN);
-      setSessions(DEMO_SESSIONS);
-      setAssignments([]);
-      setMaterials([]);
-      return setLoad("ready");
-    }
-    if (!sess.ok || !asg.ok || !mat.ok) return setLoad("error");
-    setDemo(null);
+    if (kids.status === 403) return setLoad("forbidden");
+    if (!kids.ok || !sess.ok || !asg.ok || !mat.ok) return setLoad("error");
+    const realKids = kids.data.children ?? [];
+    const realSessions = sess.data.sessions ?? [];
     setChildren(realKids);
-    setSessions(sess.data.sessions ?? []);
+    setSessions(realSessions);
     setAssignments(asg.data.assignments ?? []);
     const mats = mat.data.materials ?? [];
     setMaterials(mats);
     if (mats.length > 0) setSelectedMaterialId(mats[0].id);
 
-    // Default select first student if available for Frame 16 mockup accuracy
-    if (realKids.length > 0 && !picked) {
-      setPicked(realKids[0]);
+    // Next student = first one without a completed session.
+    if (!picked) {
+      const done = new Set(realSessions.filter((s) => s.status === "completed").map((s) => s.child_id));
+      setPicked(realKids.find((k) => !done.has(k.id)) ?? null);
     }
 
     setLoad("ready");
@@ -122,22 +110,34 @@ export default function StudentRoster() {
     setMessage("");
   }
 
-  function handleTestMic() {
-    setMicTesting(true);
-    let count = 0;
-    const interval = setInterval(() => {
-      setMicLevel(Math.floor(70 + Math.random() * 25));
-      count++;
-      if (count > 6) {
-        clearInterval(interval);
-        setMicTesting(false);
-      }
-    }, 200);
+  async function testMic() {
+    if (!navigator.mediaDevices?.getUserMedia) return setMic("missing");
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+      const name = e instanceof DOMException ? e.name : "";
+      return setMic(name === "NotAllowedError" || name === "SecurityError" ? "denied" : "missing");
+    }
+    setMic("testing");
+    const ctx = new AudioContext();
+    const analyser = ctx.createAnalyser();
+    ctx.createMediaStreamSource(stream).connect(analyser);
+    const buf = new Float32Array(analyser.fftSize);
+    let peak = 0;
+    const t0 = performance.now();
+    while (performance.now() - t0 < 2000) {
+      await new Promise((r) => requestAnimationFrame(r));
+      analyser.getFloatTimeDomainData(buf);
+      peak = Math.max(peak, rms(buf));
+    }
+    stream.getTracks().forEach((t) => t.stop());
+    void ctx.close();
+    setMic(peak >= SILENCE_RMS ? "ok" : "quiet");
   }
 
   async function startSession() {
     if (!picked) return;
-    if (demo) return router.push("/guru/simulasi");
     setMessage("");
     setBusy(true);
     let sessionId = drafts(picked.id)[0]?.id;
@@ -182,6 +182,7 @@ export default function StudentRoster() {
     in_progress: ["Sedang berjalan", "lilac"],
     completed: ["Siap ditinjau", "green"],
   };
+  const grades = [...new Set(children.map((c) => c.grade))].sort();
   const today = new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   return (
@@ -218,89 +219,105 @@ export default function StudentRoster() {
           <p className="muted small">{today} • Satu siswa, satu sesi, didampingi guru.</p>
         </div>
 
-        {demo === "error" && (
-          <p className="notice warn" role="status" style={{ marginBottom: 20 }}>
-            Data siswa gagal dimuat dari server. Silakan muat ulang halaman.
-          </p>
-        )}
-
         <div className="gd-grid">
           <div className="gd-main">
-            {picked && (
-              <section className="dash-hero" aria-labelledby="hero-title">
-                <div className="gd-hero-body">
-                  <span className="dash-hero-tag">Siswa berikutnya</span>
-                  <h2 id="hero-title" className="gd-hero-name">{picked.display_name}</h2>
-                  <div className="gd-hero-meta">
-                    <span><small>Kelas</small>{picked.grade}</span>
-                    <span><small>Status</small>{statusLabel[latest(picked.id)?.status ?? ""]?.[0] ?? "Belum mulai"}</span>
+            {load === "ready" && children.length > 0 && (
+              picked ? (
+                <section className="dash-hero" aria-labelledby="hero-title">
+                  <div className="gd-hero-body">
+                    <span className="dash-hero-tag">Siswa berikutnya</span>
+                    <h2 id="hero-title" className="gd-hero-name">{picked.display_name}</h2>
+                    <div className="gd-hero-meta">
+                      <span><small>Kelas</small>{picked.grade}</span>
+                      <span><small>Status</small>{statusLabel[latest(picked.id)?.status ?? ""]?.[0] ?? "Belum mulai"}</span>
+                    </div>
+                    <p className="small">Izin wali (kegiatan, rekaman, AI) diperiksa sistem saat sesi dimulai.</p>
+                    <div className="setup-controls">
+                      <button type="button" className="btn secondary" disabled={mic === "testing"} onClick={() => void testMic()}>
+                        {mic === "testing" ? "Menguji…" : "Uji Mikrofon"}
+                      </button>
+                      <button type="button" className="btn primary" disabled={busy} onClick={() => void startSession()}>
+                        {busy ? "Memproses…" : "Mulai Sesi Membaca"}
+                      </button>
+                    </div>
+                    <p className="small" role="status" aria-live="polite">{MIC_TEXT[mic]}</p>
+                    {message && <p className="notice warn" role="alert">{message}</p>}
                   </div>
-                  <div className="setup-consents">
-                    <span className="consent-chip">Izin Membaca Aktif</span>
-                    <span className="consent-chip">Izin Audio Aktif</span>
-                    <span className="consent-chip">Izin AI Aktif</span>
+                  <Image className="dash-hero-piko" src="/mascot/piko-wave.svg" alt="" width={200} height={206} priority />
+                </section>
+              ) : (
+                <section className="dash-hero" aria-labelledby="hero-title">
+                  <div className="gd-hero-body">
+                    <h2 id="hero-title" className="gd-hero-name">Semua siswa sudah mengikuti sesi.</h2>
+                    <p>Lanjutkan dengan meninjau rekaman yang menunggu di panel kanan.</p>
                   </div>
-                  <div className="setup-controls">
-                    <button type="button" className="btn secondary" onClick={handleTestMic}>
-                      {micTesting ? `Mengecek… (${micLevel}%)` : "Uji Mikrofon"}
-                    </button>
-                    <button type="button" className="btn primary" disabled={busy} onClick={() => void startSession()}>
-                      {busy ? "Memproses…" : "Mulai Sesi Membaca"}
-                    </button>
-                  </div>
-                  {message && <p className="notice warn" role="alert">{message}</p>}
-                </div>
-                <Image className="dash-hero-piko" src="/mascot/piko-wave.svg" alt="" width={200} height={206} priority />
-              </section>
+                  <Image className="dash-hero-piko" src="/mascot/piko-cheer.svg" alt="" width={200} height={206} priority />
+                </section>
+              )
             )}
 
-            <ul className="dash-stats">
-              {stats.map((s) => {
-                const body = (
-                  <>
-                    <strong>{s.value}</strong>
-                    <span>{s.label}</span>
-                    <Image src={`/mascot/${s.piko}.svg`} alt="" width={84} height={86} />
-                  </>
-                );
-                return (
-                  <li key={s.label} className={`dash-stat ${s.tone}`}>
-                    {s.href ? <Link href={s.href} className="gd-stat-link">{body}</Link> : body}
-                  </li>
-                );
-              })}
-            </ul>
+            {load === "ready" && children.length > 0 && (
+              <ul className="dash-stats">
+                {stats.map((s) => {
+                  const body = (
+                    <>
+                      <strong>{s.value}</strong>
+                      <span>{s.label}</span>
+                      <Image src={`/mascot/${s.piko}.svg`} alt="" width={84} height={86} />
+                    </>
+                  );
+                  return (
+                    <li key={s.label} className={`dash-stat ${s.tone}`}>
+                      {s.href ? <Link href={s.href} className="gd-stat-link">{body}</Link> : body}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
 
-            <section aria-labelledby="today-title">
+            <section aria-labelledby="roster-title">
               <div className="gd-section-head">
-                <h2 id="today-title">Siswa hari ini</h2>
+                <h2 id="roster-title">Daftar siswa</h2>
                 <div className="gd-filters">
                   <label className="sr-only" htmlFor="q">Cari siswa</label>
                   <input id="q" type="search" placeholder="Cari nama siswa" value={query} onChange={(e) => setQuery(e.target.value)} />
-                  <label className="sr-only" htmlFor="grade-filter">Kelas</label>
-                  <select id="grade-filter" value={gradeFilter} onChange={(e) => setGradeFilter(e.target.value)}>
-                    <option value="all">Semua kelas</option>
-                    <option value="2A">Kelas 2A</option>
-                    <option value="2B">Kelas 2B</option>
-                  </select>
+                  {grades.length > 1 && (
+                    <>
+                      <label className="sr-only" htmlFor="grade-filter">Kelas</label>
+                      <select id="grade-filter" value={gradeFilter} onChange={(e) => setGradeFilter(e.target.value)}>
+                        <option value="all">Semua kelas</option>
+                        {grades.map((g) => <option key={g} value={g}>Kelas {g}</option>)}
+                      </select>
+                    </>
+                  )}
                 </div>
               </div>
 
-              {load === "loading" && <p className="empty" role="status">Memuat daftar siswa...</p>}
+              {load === "loading" && <p className="empty" role="status">Memuat daftar siswa…</p>}
               {load === "error" && (
                 <div className="empty" role="alert">
                   <strong>Daftar siswa belum dapat dimuat.</strong>
+                  <p>Periksa koneksi internet, lalu coba lagi.</p>
                   <button type="button" className="btn secondary" onClick={() => void refresh()}>Coba lagi</button>
+                </div>
+              )}
+              {load === "forbidden" && (
+                <div className="empty" role="alert">
+                  <strong>Akun Anda belum terverifikasi sebagai guru.</strong>
+                  <p>Hubungi operator sekolah untuk mengaktifkan akses guru dan penugasan kelas.</p>
                 </div>
               )}
               {load === "ready" && children.length === 0 && (
                 <div className="empty">
                   <strong>Belum ada siswa yang ditugaskan.</strong>
-                  <p>Siswa muncul setelah operator menetapkan penugasan untuk akun Anda.</p>
+                  <p>Siswa muncul di sini setelah operator sekolah menetapkan penugasan untuk akun Anda.</p>
                 </div>
               )}
               {load === "ready" && children.length > 0 && shown.length === 0 && (
-                <p className="empty">Tidak ada siswa dengan kriteria pencarian tersebut.</p>
+                <div className="empty">
+                  <strong>Tidak ada siswa yang cocok.</strong>
+                  <button type="button" className="btn secondary" onClick={() => { setQuery(""); setGradeFilter("all"); }}>Hapus pencarian</button>
+                </div>
               )}
 
               {load === "ready" && shown.length > 0 && (
@@ -318,16 +335,16 @@ export default function StudentRoster() {
                           <span className={`gd-chip tone-${tone}`}>{label}</span>
                         </div>
                         {s?.status === "completed" ? (
-                          <Link className="gd-arrow" href={`/guru/rekaman?session=${s.id}`} aria-label={`Tinjau rekaman ${child.display_name}`}>→</Link>
+                          <Link className="btn secondary gd-card-btn" href={`/guru/rekaman?session=${s.id}`}>Tinjau</Link>
+                        ) : isPicked ? (
+                          <span className="small muted">Dipilih</span>
                         ) : (
                           <button
                             type="button"
-                            className="gd-arrow"
-                            aria-pressed={isPicked}
-                            aria-label={`Pilih ${child.display_name} untuk sesi berikutnya`}
+                            className="btn secondary gd-card-btn"
                             onClick={() => { openSelect(child); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                           >
-                            →
+                            Pilih
                           </button>
                         )}
                       </li>
@@ -343,7 +360,7 @@ export default function StudentRoster() {
             {toReview.length === 0 ? (
               <div className="gd-side-empty">
                 <Image src="/mascot/piko-rest.svg" alt="" width={110} height={113} />
-                <p className="muted small">Belum ada sesi yang menunggu telaah.</p>
+                <p className="muted small">Belum ada sesi selesai. Rekaman muncul di sini setelah siswa menyelesaikan sesi membaca.</p>
               </div>
             ) : (
               <ul className="gd-review">
@@ -352,7 +369,7 @@ export default function StudentRoster() {
                     <Link href={`/guru/rekaman?session=${s.id}`}>
                       <strong>{nameOf(s.child_id)}</strong>
                       <span className="muted small">
-                        {new Date(s.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} • Rekaman bacaan
+                        Selesai {new Date(s.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} • Rekaman bacaan
                       </span>
                     </Link>
                   </li>
