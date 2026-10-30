@@ -34,7 +34,7 @@ Identitas anak, jawaban, rekaman, anotasi, laporan, dan konsultasi diperlakukan 
 
 ## 3. Perangkat bersama
 
-Pengecualian uji sintetis yang disetujui pemilik: PIN guru 6 digit dapat digunakan untuk membuka lock akun (hash server, 5 salah memblokir 15 menit). Ini bukan MFA dan tidak mengganti persyaratan penggunaan nyata. Fondasi backend migrasi 006 belum menjamin penghapusan tampilan/cache/tab atau isolasi client, sehingga belum boleh dipakai menyerahkan perangkat pada anak nyata.
+Pengecualian uji sintetis yang disetujui pemilik: PIN guru 4 digit (PIN lama 6 digit tetap bisa membuka) dapat digunakan untuk membuka lock akun (hash server, 5 salah memblokir 15 menit). Ini bukan MFA dan tidak mengganti persyaratan penggunaan nyata. Fondasi backend migrasi 006 belum menjamin penghapusan tampilan/cache/tab atau isolasi client, sehingga belum boleh dipakai menyerahkan perangkat pada anak nyata.
 
 Sebelum perangkat diserahkan kepada siswa, hak guru dikunci efektif dan hanya kapabilitas satu sesi tersedia. Kembali ke area guru memerlukan autentikasi ulang. Tab lama, API langsung, akses database/Storage, dan koneksi aktif harus tunduk pada pembatasan ini.
 

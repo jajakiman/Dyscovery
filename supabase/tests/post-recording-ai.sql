@@ -42,7 +42,7 @@ select public.record_guardian_consent('70000000-0000-4000-8000-000000000173','re
 
 -- Teacher starts session, records audio and finalizes it
 select set_config('request.jwt.claim.sub','70000000-0000-4000-8000-000000000150',true);
-select public.set_teacher_pin('314159');
+select public.set_teacher_pin('3141');
 
 do $$
 declare
@@ -59,7 +59,7 @@ begin
   up_res := public.request_audio_upload(attempt_id, 'audio/webm');
   rec_id := (up_res->>'recordingId')::uuid;
   perform public.finalize_audio_upload(rec_id, 'hash-val-1234567890', 524288, 8500);
-  perform public.unlock_teacher_mode('314159');
+  perform public.unlock_teacher_mode('3141');
 
   -- Attempting AI analysis without AI consent must be rejected
   begin
@@ -105,17 +105,17 @@ end $$;
 
 -- Guardian can read AI analysis results while consent is active
 select set_config('request.jwt.claim.sub','70000000-0000-4000-8000-000000000151',true);
-assert (select count(*) from public.ai_analyses) = 1, 'Guardian cannot read AI analyses';
-assert (select count(*) from public.ai_annotations) = 2, 'Guardian cannot read AI annotations';
+do $$ begin assert (select count(*) from public.ai_analyses) = 1, 'Guardian cannot read AI analyses';
+assert (select count(*) from public.ai_annotations) = 2, 'Guardian cannot read AI annotations'; end $$;
 
 -- Guardian revokes AI consent -> RLS immediately blocks reading
 select public.record_guardian_consent('70000000-0000-4000-8000-000000000173','ai','withdraw','ai-test-v1','ai-test-s1');
-assert (select count(*) from public.ai_analyses) = 0, 'AI analysis read allowed after consent revocation';
+do $$ begin assert (select count(*) from public.ai_analyses) = 0, 'AI analysis read allowed after consent revocation'; end $$;
 
 -- Unassigned teacher cannot read
 select set_config('request.jwt.claim.sub','70000000-0000-4000-8000-000000000152',true);
-select public.set_teacher_pin('271828');
-assert (select count(*) from public.ai_analyses) = 0, 'Unassigned teacher read AI analysis';
+select public.set_teacher_pin('2718');
+do $$ begin assert (select count(*) from public.ai_analyses) = 0, 'Unassigned teacher read AI analysis'; end $$;
 
 reset role;
 rollback;

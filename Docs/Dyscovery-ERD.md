@@ -272,7 +272,7 @@ erDiagram
 
 ### Aturan Integritas Sesi, Petualangan, Audio, dan Verifikasi Guru
 1. `STUDENT_ACCESS`: Mengimplementasikan *Server-Side Student Access Lock*. Saat `lock_status = 'locked'`, API server menolak seluruh permintaan berprivilege guru. Membuka kunci membutuhkan PIN/re-autentikasi guru (`revoked_at` terisi).
-2. `MATERIAL_VERSION`: Bersifat *immutable*. Definisi babak petualangan gamifikasi (dialog Piko, ubin huruf buah kelapa, stimulus kata/teks Nunito Sans 26–28px) dan rubrik penilaian tersimpan dalam format JSON dengan hash validasi (`content_hash`).
+2. `MATERIAL_VERSION`: Bersifat *immutable*. Definisi babak petualangan gamifikasi (dialog Piko, ubin huruf buah kelapa, stimulus kata/teks Andika 28px) dan rubrik penilaian tersimpan dalam format JSON dengan hash validasi (`content_hash`).
 3. `TASK_ATTEMPT`:
    - `encounter_type`: `'letter_arrange'` (menyusun huruf buah kelapa), `'spelling_image'` (mengeja gambar jejak), `'word_read'` (membaca kata nyata/semu), `'passage_read'` (membaca teks lisan), atau `'comprehension'` (pemahaman sahabat hutan).
    - `phase`: Dibatasi `'practice'` (latihan bersama Piko, tidak masuk skor) atau `'screening'` (skrining resmi).

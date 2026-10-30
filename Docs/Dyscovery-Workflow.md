@@ -12,7 +12,7 @@ Acuan: [PRD](Dyscovery-PRD.md), [ERD](Dyscovery-ERD.md), [Security Rules](Dyscov
 ## Ringkasan Prinsip Arsitektur Workflow
 
 1. **Modul Petualangan Interaktif Gamifikasi (*Dora-Style Adventure*):** Aktivitas asesmen dikemas ke dalam perjalanan eksplorasi naratif bersama Maskot Piko (mencari buah kelapa, menyusun ubin huruf, membaca sandi kata, membaca prasasti cerita lisan).
-2. **Integritas Penilaian Membaca:** Pada saat anak membaca kata/teks lisan, antarmuka menyajikan kartu stimulus yang tenang dan stabil (Nunito Sans 26–28px di latar `#FAF8F4`), dan **Maskot Piko WAJIB DISEMBUNYIKAN TOTAL** untuk mencegah distraksi visual dan kecemasan membaca (*reading anxiety*).
+2. **Integritas Penilaian Membaca:** Pada saat anak membaca kata/teks lisan, antarmuka menyajikan kartu stimulus yang tenang dan stabil (Andika 28px di latar `#FAF8F4`), dan **Maskot Piko WAJIB DISEMBUNYIKAN TOTAL** untuk mencegah distraksi visual dan kecemasan membaca (*reading anxiety*).
 3. **Perangkat Tunggal Guru (Single Teacher Device 1440×900px):** Seluruh sesi asesmen sekolah dijalankan pada laptop/desktop guru. Siswa tidak memiliki akun, melainkan berinteraksi melalui **Mode Siswa Sementara (*Student Mode*)** yang dikunci di sisi server (*Server-Side Student Access Lock*).
 4. **Pemrosesan AI Pascarekaman (Post-Recording 2–15 Detik):** AI ucapan bekerja strictly pascarekaman setelah audio aman tersimpan di Supabase Private Storage. Tidak ada streaming real-time, live alignment, atau LLM generatif. AI bertindak sebagai *drafting assistant* yang memangkas beban kerja guru hingga 80–90%.
 5. **Pemisahan Skrining Sekolah & Diagnosis Klinis:** Sekolah melakukan observasi objektif. Diagnosis resmi diserahkan kepada psikolog melalui **Direktori Psikolog Terverifikasi** dengan mekanisme izin berbagi laporan berbatas waktu (*time-bound access*).
@@ -73,7 +73,7 @@ flowchart TD
     end
 
     subgraph ActiveReadingScreening["Fase Pembacaan Teks Lisan Aktif (Pos 4)"]
-        TRANSITION --> K["Tampilkan Kartu Stimulus Stabil (Nunito Sans 26-28px di latar #FAF8F4)"]
+        TRANSITION --> K["Tampilkan Kartu Stimulus Stabil (Andika 28px di latar #FAF8F4)"]
         K --> L["PIKO WAJIB DISEMBUNYIKAN TOTAL (display: none, tanpa maskot di layar)"]
         L --> M["Mulai Perekaman Audio Klien (MediaRecorder)"]
         M --> N{"Ada tombol Jeda atau Panggil Guru ditekan?"}

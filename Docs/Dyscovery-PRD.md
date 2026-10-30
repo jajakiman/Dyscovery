@@ -75,7 +75,7 @@ Sistem Dyscovery beroperasi dalam model **Perangkat Tunggal Guru (Single Teacher
 - **Perekaman Audio Klien:** Menggunakan API peramban standar `navigator.mediaDevices.getUserMedia` dan `MediaRecorder` (format audio standar: WebM / OGG / WAV sesuai dukungan browser).
 
 ### 3.3 Target Operasional Biaya Rp0
-- Arsitektur MVP mematuhi batasan kuota gratis (*free tier*): Supabase Free Plan, Vercel Hobby, GitHub Free, font berlisensi terbuka (Google Fonts Nunito Sans), dan aset ilustrasi orisinal.
+- Arsitektur MVP mematuhi batasan kuota gratis (*free tier*): Supabase Free Plan, Vercel Hobby, GitHub Free, font berlisensi terbuka (Google Fonts Nunito Sans dan Andika), dan aset ilustrasi orisinal.
 - Tidak ada gateway pembayaran, tagihan otomatis (*billing*), atau dependensi server backend terpisah (Express/NestJS) dalam cakupan MVP.
 - Analisis AI menggunakan alokasi kuota komputasi terukur; jika kuota tercapai, sistem secara elegan beralih ke alur peninjauan manual murni (*graceful fallback*) tanpa menghambat kelangsungan sesi.
 
@@ -116,7 +116,7 @@ Untuk menghapus stigma ujian yang menegangkan bagi siswa kelas 2 SD, seluruh akt
 
 ### 4.2 Integritas Asesmen Membaca (Assessment Integrity Rules)
 Meskipun dibalut nuansa petualangan yang seru, integritas pengamatan klinis tetap dijaga ketat:
-- **Pemberian Stimulus yang Stabil & Tenang:** Pada babak membaca teks/kata (Pos 3 & Pos 4), antarmuka secara halus bertransisi ke tampilan kartu stimulus membaca terpusat dengan tipografi **Nunito Sans 26–28px**, berbingkai latar Putih Hangat (`#FAF8F4`), dengan aksen hutan pixel art statis di batas luar.
+- **Pemberian Stimulus yang Stabil & Tenang:** Pada babak membaca teks/kata (Pos 3 & Pos 4), antarmuka secara halus bertransisi ke tampilan kartu stimulus membaca terpusat dengan tipografi **Andika 28px**, berbingkai latar Putih Hangat (`#FAF8F4`), dengan aksen hutan pixel art statis di batas luar.
 - **Piko Sembunyi Total Saat Membaca Teks:** Selama rekaman bacaan berlangsung, **Maskot Piko WAJIB DISEMBUNYIKAN SEPENUHNYA DARI KARTU STIMULUS**. Tidak ada animasi gerak, ekspresi wajah, atau karakter di layar agar tidak terjadi *cognitive overload*, distraksi visual, atau kecemasan membaca pada siswa.
 - **Bebas Elemen Bergerak:** Dilarang keras menampilkan penanda kata bergerak (*bouncing ball*), teks melompat-lompat, atau perubahan warna kata secara real-time saat membaca.
 
@@ -229,7 +229,7 @@ Dyscovery secara sadar dan tegas **MENOLAK** penggunaan *Real-Time Speech Recogn
 - **Foreground (Arang Kebiruan):** `#202C38` — Teks bacaan utama, judul, dan label instruksi dengan kontras tinggi.
 
 ### 9.2 Tipografi & Kartu Stimulus
-- Font utama antarmuka dan bacaan adalah **Nunito Sans** (bobot 400, 600, 700).
+- Font antarmuka **Nunito Sans** (bobot 400, 600, 700); font stimulus bacaan anak **Andika** (keputusan pemilik 29 Okt 2026, pilihan awal, bukan klaim klinis).
 - Kartu bacaan siswa menggunakan ukuran font **26–28px** dengan *line-height* 1.6 untuk memastikan keterbacaan optimal tanpa memicu kelelahan visual (*visual crowding*).
 - Teks bacaan disajikan statis di atas kartu berlatar `#FAF8F4` dengan elemen tepi bertema hutan pixel-art yang lembut.
 
@@ -257,7 +257,7 @@ Direktori psikolog menampilkan daftar kartu profil (*verified psychologist cards
 - [ ] **Modul Petualangan Interaktif Berfungsi:** Siswa dapat menjalani narasi petualangan mencari kelapa/huruf, mengeja gambar, dan membaca kata/teks bersama Piko pada alur yang menyenangkan.
 - [ ] **Alur Perangkat Tunggal:** Guru dapat login di desktop/laptop (1440×900px), memilih siswa, dan mengaktifkan Mode Siswa Sementara dengan *Student Access Lock* yang mengunci hak guru di sisi server.
 - [ ] **Visibilitas Maskot Piko Sesuai Tahap:** Maskot Piko tampil pada fase Sambutan, Cek Suara, Latihan/Petualangan, Jeda, dan Selesai, serta **terbukti 100% tersembunyi** selama pembacaan teks aktif.
-- [ ] **Pemberian Stimulus Bersih:** Teks bacaan ditampilkan dalam kartu berlatar `#FAF8F4` dengan ukuran Nunito Sans 26–28px tanpa ada koreksi visual atau pelompatan kata saat siswa membaca.
+- [ ] **Pemberian Stimulus Bersih:** Teks bacaan ditampilkan dalam kartu berlatar `#FAF8F4` dengan ukuran Andika 28px tanpa ada koreksi visual atau pelompatan kata saat siswa membaca.
 - [ ] **AI Pascarekaman Berfungsi:** Rekaman audio terunggah ke Supabase Private Storage, memicu inferensi AI pascarekaman dengan latensi 2–15 detik, dan menyajikan draf anotasi awal pada Teacher Verification Split-View.
 - [ ] **Tidak Ada Streaming Real-Time:** Terbukti tidak ada implementasi WebSocket audio streaming, live alignment, atau LLM generatif dalam alur skrining MVP.
 - [ ] **Efisiensi Kerja Guru:** Guru dapat meninjau rekaman audio dengan waveform tersinkronisasi dan memfinalisasi anotasi draf AI dengan pengurangan intervensi manual sebesar 80–90%.

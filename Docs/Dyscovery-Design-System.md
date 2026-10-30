@@ -51,7 +51,7 @@ Untuk keamanan dan persetujuan, gunakan batas yang lebih ketat dari Security Rul
 | Membaca aktif | ENERGY 1 / RHYTHM 1 / MOTION 1 | Teks stabil menjadi satu-satunya fokus; tanpa gerak dekoratif |
 | Guru dan orang tua | ENERGY 1 / RHYTHM 1 / MOTION 1 | Hierarki dan status yang dapat dipindai lebih penting daripada dekorasi |
 
-Motif identitas: lipatan apricot dari buku saku Piko, dipakai terbatas pada checkpoint dan penghargaan. Jangan menambah motif ini pada stimulus membaca. Pixel-art hanya untuk lingkungan petualangan; teks UI dan stimulus tetap Nunito Sans.
+Motif identitas: lipatan apricot dari buku saku Piko, dipakai terbatas pada checkpoint dan penghargaan. Jangan menambah motif ini pada stimulus membaca. Pixel-art hanya untuk lingkungan petualangan; teks UI memakai Nunito Sans, stimulus bacaan anak memakai Andika.
 
 Satu layar memiliki satu fokus dan satu tindakan utama. Kartu digunakan untuk memisahkan objek kerja seperti bacaan, review, dan profil, bukan membungkus setiap paragraf. Bayangan hanya menandai elevasi dialog/kartu stimulus; panel administratif cukup memakai pemisah.
 
@@ -85,7 +85,7 @@ Warna status selalu disertai label. Hijau tidak berarti anak “normal”, dan m
 
 ### 3.3 Typography
 
-Font wajib: **Nunito Sans**, bobot 400, 600, 700; fallback sans-serif. Ketersediaan font tidak boleh mengubah ukuran stimulus tanpa pemeriksaan ulang layout.
+Font UI: **Nunito Sans**, bobot 400, 600, 700; fallback sans-serif. Font stimulus bacaan anak: **Andika** (SIL OFL), bobot 400 dan 700, letter-spacing 0.08em, line-height 1.75, rata kiri, tanpa italic/kapital semua/garis bawah, 28px (24px di layar sempit), latar `#FAF8F4`. Keputusan pemilik 29 Okt 2026 sebagai pilihan awal, bukan klaim klinis; jangan menulis klaim "ramah disleksia" di UI. Font dikunci dan diversikan; ganti font hanya dengan versi materi baru, idealnya setelah dikonfirmasi ahli dan diuji pada anak. Ketersediaan font tidak boleh mengubah ukuran stimulus tanpa pemeriksaan ulang layout.
 
 | Peran | Ukuran | Bobot | Line height |
 |---|---|---|---|
@@ -328,7 +328,7 @@ Semua ukuran berikut rekomendasi layout dalam frame wajib 1440 × 900. State tur
 - Aset: `piko-rest.svg` untuk jeda; `piko-call-teacher.svg` untuk kendala.
 - Konten: “Kita istirahat sebentar.” Panel teknis guru berisi level audio, indikator kebisingan deskriptif, “Uji Mikrofon Lagi”, serta autentikasi untuk kembali ke area guru.
 - Jangan mengarang ambang kebisingan klinis. Jika pengukuran tidak tersedia, tampilkan instruksi cek lingkungan, bukan indikator lolos palsu.
-- Aksi: “Lanjutkan”, “Panggil Guru”, “Akhiri Sesi” dengan konfirmasi; PIN hanya sesuai kebijakan §10, bukan PIN 4 digit produksi.
+- Aksi: “Lanjutkan”, “Panggil Guru”, “Akhiri Sesi” dengan konfirmasi; PIN hanya sesuai kebijakan §10, PIN 4 digit hanya untuk uji sintetis, bukan pengaman produksi.
 - Jeda menghentikan/menjeda capture sesuai kemampuan browser dan mencatat event. Uji mic terpisah tidak ditambahkan ke audio asesmen.
 - Resume memulihkan task asal, menyembunyikan Piko, lalu meminta tindakan melanjutkan rekaman; Escape tidak melepas lock atau otomatis menyalakan mic.
 

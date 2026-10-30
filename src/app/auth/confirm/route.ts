@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   if (hash && hash.length < 4096) {
     const supabase = await createClient();
     const { error } = await supabase.auth.verifyOtp({ token_hash: hash, type: "email" });
-    if (!error) return NextResponse.redirect(new URL("/api/auth/profile", "https://dyscovery.vercel.app"));
+    if (!error) return NextResponse.redirect(new URL("/", "https://dyscovery.vercel.app"));
   }
   return NextResponse.json({ error: "Konfirmasi gagal, kedaluwarsa, atau sudah digunakan." }, {
     status: 400, headers: { "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer" },

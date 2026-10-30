@@ -16,11 +16,11 @@ update public.profiles set product_role='teacher',verification_status='verified'
 where id='80000000-0000-4000-8000-000000000001';
 set local role authenticated;
 select set_config('request.jwt.claim.sub','80000000-0000-4000-8000-000000000001',true);
-select public.set_teacher_pin('012345');
+select public.set_teacher_pin('0123');
 do $$ begin
   assert public.teacher_mode_unlocked(), 'Initially locked';
   begin
-    perform public.set_teacher_pin('111111');
+    perform public.set_teacher_pin('1111');
     raise exception 'PIN replaced without recovery';
   exception when invalid_parameter_value then null; end;
 end $$;
@@ -39,16 +39,16 @@ do $$ begin
     raise exception 'Onboarding bypassed lock';
   exception when insufficient_privilege then null; end;
   for i in 1..5 loop
-    assert not (public.unlock_teacher_mode('999999')->>'ok')::boolean, 'Wrong PIN accepted';
+    assert not (public.unlock_teacher_mode('9999')->>'ok')::boolean, 'Wrong PIN accepted';
   end loop;
-  assert not (public.unlock_teacher_mode('012345')->>'ok')::boolean, 'Correct PIN bypassed lockout';
+  assert not (public.unlock_teacher_mode('0123')->>'ok')::boolean, 'Correct PIN bypassed lockout';
 end $$;
 reset role;
 update public.teacher_device_modes set blocked_until=clock_timestamp()-interval '1 second'
 where teacher_id='80000000-0000-4000-8000-000000000001';
 set local role authenticated;
 do $$ begin
-  assert (public.unlock_teacher_mode('012345')->>'ok')::boolean, 'Correct PIN rejected after lockout';
+  assert (public.unlock_teacher_mode('0123')->>'ok')::boolean, 'Correct PIN rejected after lockout';
   assert public.teacher_mode_unlocked(), 'Teacher access not restored';
   assert (select count(*) from public.profiles)=1, 'Profile not restored';
 end $$;

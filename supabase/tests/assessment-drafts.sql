@@ -61,14 +61,14 @@ set local role authenticated;
 do $$ begin
   assert (select count(*) from public.practice_responses)=1, 'Assigned teacher cannot read response';
 end $$;
-select public.set_teacher_pin('012345');
+select public.set_teacher_pin('0123');
 reset role;
 update public.teacher_device_modes set locked_at=clock_timestamp(),expires_at=clock_timestamp()+interval '1 hour'
 where teacher_id='70000000-0000-4000-8000-000000000010';
 set local role authenticated;
 do $$ begin
   assert (select count(*) from public.practice_responses)=0, 'Locked teacher can read response';
-  assert (public.unlock_teacher_mode('012345')->>'ok')::boolean, 'Unlock failed';
+  assert (public.unlock_teacher_mode('0123')->>'ok')::boolean, 'Unlock failed';
   assert (select count(*) from public.practice_responses)=1, 'Response not restored after unlock';
 end $$;
 select set_config('request.jwt.claim.sub','70000000-0000-4000-8000-000000000012',true);

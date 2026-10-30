@@ -37,7 +37,7 @@ select public.record_guardian_consent('70000000-0000-4000-8000-000000000073','ac
 
 -- Teacher 1 creates draft session and configures PIN
 select set_config('request.jwt.claim.sub','70000000-0000-4000-8000-000000000050',true);
-select public.set_teacher_pin('654321');
+select public.set_teacher_pin('6543');
 
 do $$
 declare
@@ -96,6 +96,7 @@ begin
 
   -- Complete session
   perform public.complete_assessment_session(sess_id);
+  assert (public.unlock_teacher_mode('6543')->>'ok')::boolean, 'Unlock failed';
   assert (select status from public.assessment_sessions where id=sess_id) = 'completed', 'Session not completed';
   assert (select count(*) from public.session_events where session_id=sess_id and event_type='session_completed') = 1, 'session_completed event missing';
 
@@ -108,7 +109,7 @@ end $$;
 
 -- Teacher 2 without assignment cannot access or start Teacher 1 session
 select set_config('request.jwt.claim.sub','70000000-0000-4000-8000-000000000052',true);
-select public.set_teacher_pin('112233');
+select public.set_teacher_pin('1122');
 
 do $$
 declare

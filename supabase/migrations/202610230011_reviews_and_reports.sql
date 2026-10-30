@@ -275,7 +275,7 @@ create policy review_revisions_select on public.review_revisions for select to a
       join public.assessment_sessions s on s.id = a.session_id
       where a.id = task_attempt_id
         and (public.can_access_assigned_child(s.child_id)
-          or (status = 'finalized' and public.can_access_guardian_child(s.child_id)))
+          or (review_revisions.status = 'finalized' and public.can_access_guardian_child(s.child_id)))
   )
 );
 
@@ -288,7 +288,7 @@ create policy report_versions_select on public.report_versions for select to aut
     select 1 from public.assessment_sessions s
       where s.id = session_id
         and (public.can_access_assigned_child(s.child_id)
-          or (status = 'published' and public.can_access_guardian_child(s.child_id)))
+          or (report_versions.status = 'published' and public.can_access_guardian_child(s.child_id)))
   )
 );
 

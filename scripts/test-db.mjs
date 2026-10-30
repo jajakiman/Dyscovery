@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 // ponytail: explicit rollback-test allowlist; add new reviewed tests here, never seeds.
-const files = ['identity', 'onboarding', 'assignments', 'consents', 'assessment-drafts', 'teacher-mode', 'practice', 'session-lifecycle', 'private-audio', 'reviews-and-reports', 'post-recording-ai', 'psychologist-sharing']
+const files = ['identity', 'onboarding', 'assignments', 'consents', 'assessment-drafts', 'my-assignments', 'teacher-mode', 'practice', 'session-lifecycle', 'private-audio', 'reviews-and-reports', 'post-recording-ai', 'psychologist-sharing']
   .map(name => `supabase/tests/${name}.sql`);
 const args = process.argv.slice(2);
 if (args.length === 1 && args[0] === '--list') {

@@ -208,7 +208,7 @@ Target pemilik: penyelesaian hari ini, sebelum deadline 30 Oktober. Core MVP PRD
 
 ## Fondasi PIN dan penguncian mode guru (parsial, belum handoff siswa)
 
-- Keputusan pemilik: login Google atau email/password, tanpa username khusus; PIN 6 digit untuk kembali dari mode siswa. PIN bukan MFA produksi. Login manual sudah tersedia di endpoint auth, tetapi SMTP dan uji email end-to-end masih tertunda; tidak mengklaim UI login manual selesai.
+- Keputusan pemilik: login Google atau email/password, tanpa username khusus; PIN 4 digit (diubah 29 Okt 2026; PIN lama 6 digit tetap bisa unlock) untuk kembali dari mode siswa. PIN bukan MFA produksi. Login manual sudah tersedia di endpoint auth, tetapi SMTP dan uji email end-to-end masih tertunda; tidak mengklaim UI login manual selesai.
 - Migrasi 006 menambah teacher_device_modes privat, hash bcrypt cost 10 via pgcrypto, RPC set PIN satu kali, enter mode untuk draft sendiri yang berizin, status, unlock. Salah 5 kali memblokir 15 menit; counter diserialkan row lock dan hasil gagal dikembalikan tanpa exception agar counter tersimpan. Tidak ada PIN default/reset publik; recovery operator belum diimplementasikan.
 - Lock berlaku SELURUH akun guru, bukan hanya satu device, agar login baru/tab lama tidak melewati lock. Restrictive RLS memblokir profiles/teacher_profiles/children/material_versions/assessment_sessions; trigger memblokir bypass onboarding security-definer. Helper akses assignment dibungkus lock; helper lama tidak dapat dipanggil authenticated. Data yang telanjur ditampilkan tidak dapat dihapus dari memori/tab lewat RLS.
 - POST `/api/teacher-mode/{pin,enter,unlock}` menerima `{pin}` atau `{sessionId}`; perlu Origin staging dan `ENABLE_SYNTHETIC_TEACHER_PIN=true`. GET `/api/teacher-mode/status` memberikan mode teacher/student/locked. Flag endpoint bukan gerbang database: RPC authenticated tetap tersedia, sehingga jangan menerapkan migrasi ini ke penggunaan data nyata tanpa hardening. Mode siswa kedaluwarsa 1 jam, tetapi hak guru tetap terkunci sampai PIN benar. Unlock mengembalikan sessionId untuk navigasi kelak, bukan membuat sesi baru.
@@ -340,3 +340,21 @@ Konfigurasi client Supabase dan environment staging, kemudian migrasi identitas/
 ## Aturan handoff
 
 Setiap perubahan berikutnya wajib memperbarui dokumen ini dengan file terkait, cara menjalankan, hasil uji aktual, blocker, serta langkah berikutnya. Perubahan model/alur juga harus disinkronkan dengan ERD/Workflow setelah disetujui. Jangan menulis nilai kredensial dalam dokumentasi atau Git.
+
+## UI Layer 0-3 dan keputusan 29 Okt 2026 (belum divalidasi pemilik di browser)
+
+- Keputusan pemilik: PIN 4 digit (migrasi 014, belum diterapkan). Hanya 10.000 kombinasi; tetap khusus uji sintetis, bukan MFA produksi. Unlock masih menerima PIN lama 6 digit; PIN yang sudah ada tidak bisa diganti tanpa recovery operator.
+- Keputusan pemilik: stimulus bacaan anak memakai Andika, UI Nunito Sans (lihat Design System). Pilihan awal, bukan klaim klinis; belum dikonfirmasi ahli atau diuji pada anak.
+- UI (prototipe Open Design sebagai acuan, tidak disalin): `/` login Google/email + onboarding; `/guru/siswa` daftar siswa, buat draf sesi (pilih materi), buat PIN, mulai mode siswa; `/siswa` mode siswa memakai praktik sintetis dan buka kunci PIN. `/auth/mode-test` dipertahankan sebagai alat uji. Redirect callback/confirm sekarang ke `/`.
+- Migrasi 015 `my_assignments()` + `GET /api/assignments`: guru membaca penugasan aktif miliknya lewat RPC (tanpa grant tabel). Tes `supabase/tests/my-assignments.sql` masuk runner (13 file).
+- Hasil aktual: typecheck, lint (0 warning), build, tes Node PIN dan runner lulus. Tes SQL, migrasi 009-015 ke Supabase, dan klik-lewat browser/Delivery Gate BELUM dijalankan agen. Layer 4-8 (petualangan, rekaman, tinjauan, laporan, portal wali) belum dibuat. Belum commit/push.
+- Heuristik: UI menganggap 403 pada `enter` sebagai "perlu PIN atau persetujuan/penugasan"; belum diuji.
+
+## UI Layer 0-3 dan keputusan 29 Okt 2026 (belum divalidasi pemilik di browser)
+
+- Keputusan pemilik: PIN 4 digit (migrasi 014, belum diterapkan). Hanya 10.000 kombinasi; tetap khusus uji sintetis, bukan MFA produksi. Unlock masih menerima PIN lama 6 digit; PIN yang sudah ada tidak bisa diganti tanpa recovery operator.
+- Keputusan pemilik: stimulus bacaan anak memakai Andika, UI Nunito Sans (lihat Design System). Pilihan awal, bukan klaim klinis; belum dikonfirmasi ahli atau diuji pada anak.
+- UI (prototipe Open Design sebagai acuan, tidak disalin): `/` login Google/email + onboarding; `/guru/siswa` daftar siswa, buat draf sesi (pilih materi), buat PIN, mulai mode siswa; `/siswa` mode siswa memakai praktik sintetis dan buka kunci PIN. `/auth/mode-test` dipertahankan sebagai alat uji. Redirect callback/confirm sekarang ke `/`.
+- Migrasi 015 `my_assignments()` + `GET /api/assignments`: guru membaca penugasan aktif miliknya lewat RPC (tanpa grant tabel). Tes `supabase/tests/my-assignments.sql` masuk runner (13 file).
+- Hasil aktual: typecheck, lint, tes Node PIN dan runner lulus. Tes SQL, migrasi 009-015 ke Supabase, dan klik-lewat browser/Delivery Gate BELUM dijalankan agen. Layer 4-8 (petualangan, rekaman, tinjauan, laporan, portal wali) belum dibuat. Belum commit/push.
+- Heuristik: UI menganggap 403 pada `enter` sebagai "perlu PIN atau persetujuan/penugasan"; belum diuji.

@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   if (code && code.length < 4096) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL("/api/auth/profile", "https://dyscovery.vercel.app"));
+    if (!error) return NextResponse.redirect(new URL("/", "https://dyscovery.vercel.app"));
   }
   return NextResponse.json({ error: "Login Google gagal atau dibatalkan. Mulai login kembali." }, {
     status: 400, headers: { "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer" },

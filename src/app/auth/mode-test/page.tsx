@@ -80,8 +80,8 @@ export default function ModeTestPage() {
     void action(path, body);
   }
 
-  const pinField = <><label htmlFor="pin">PIN guru (6 digit)</label>
-    <input id="pin" name="pin" type="password" inputMode="numeric" pattern="[0-9]{6}" minLength={6} maxLength={6} autoComplete="off" required /></>;
+  const pinField = <><label htmlFor="pin">PIN guru (4 digit)</label>
+    <input id="pin" name="pin" type="password" inputMode="numeric" pattern="[0-9]{4}" minLength={4} maxLength={4} autoComplete="off" required /></>;
 
   return <main className="mode-test">
     <style>{`

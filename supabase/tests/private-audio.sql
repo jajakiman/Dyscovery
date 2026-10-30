@@ -40,7 +40,7 @@ select public.record_guardian_consent('70000000-0000-4000-8000-000000000113','ac
 
 -- Teacher 1 creates draft and starts session
 select set_config('request.jwt.claim.sub','70000000-0000-4000-8000-000000000090',true);
-select public.set_teacher_pin('246810');
+select public.set_teacher_pin('2468');
 
 do $$
 declare
@@ -56,6 +56,7 @@ begin
   perform public.enter_student_mode(sess_id);
 
   attempt_id := public.save_task_attempt('pos4-reading', 'passage_read', 'screening', '{"status":"ready_for_audio"}'::jsonb, gen_random_uuid(), 1);
+  perform set_config('test.attempt_id', attempt_id::text, true);
 
   -- Upload request must be rejected without 'recording' consent
   begin
@@ -78,7 +79,7 @@ declare
   rec_id uuid;
   playback_res jsonb;
 begin
-  select id into attempt_id from public.task_attempts where item_key='pos4-reading';
+  attempt_id := current_setting('test.attempt_id', true)::uuid;
 
   -- Should now succeed
   upload_res := public.request_audio_upload(attempt_id, 'audio/webm');
@@ -89,10 +90,10 @@ begin
 
   -- Finalize audio upload with valid parameters
   perform public.finalize_audio_upload(rec_id, 'abc123def456sha256hash', 1048576, 12500);
-  assert (select upload_status from public.recordings where id=rec_id) = 'ready', 'Recording not ready';
 
   -- Unlock teacher mode before attempting teacher playback
-  perform public.unlock_teacher_mode('246810');
+  perform public.unlock_teacher_mode('2468');
+  assert (select upload_status from public.recordings where id=rec_id) = 'ready', 'Recording not ready';
 
   -- Teacher can retrieve playback info
   playback_res := public.get_recording_playback_info(rec_id);

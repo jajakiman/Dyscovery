@@ -10,7 +10,7 @@ const list = run('--list');
 assert.equal(list.status, 0, list.stderr);
 assert.ok(list.stdout.includes('assessment-drafts.sql'));
 assert.ok(!list.stdout.includes('seed-synthetic-practice.sql'));
-assert.equal(list.stdout.trim().split('\n').length, 12);
+assert.equal(list.stdout.trim().split('\n').length, 13);
 const missing = run();
 assert.notEqual(missing.status, 0);
 assert.ok(missing.stderr.includes('--service'));

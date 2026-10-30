@@ -31,7 +31,7 @@ insert into public.school_members(id,school_id,profile_id,status,verified_at) va
 ('80000000-0000-4000-8000-000000000111','80000000-0000-4000-8000-000000000110','80000000-0000-4000-8000-000000000101','active',now()),
 ('80000000-0000-4000-8000-000000000115','80000000-0000-4000-8000-000000000110','80000000-0000-4000-8000-000000000105','active',now());
 insert into public.children(id,school_id,display_name,grade) values
-('80000000-0000-4000-8000-000000000112','Sekolah Berbagi Sintetis','Anak Berbagi Sintetis','2');
+('80000000-0000-4000-8000-000000000112','80000000-0000-4000-8000-000000000110','Anak Berbagi Sintetis','2');
 -- Fix school_id foreign key for child
 update public.children set school_id='80000000-0000-4000-8000-000000000110' where id='80000000-0000-4000-8000-000000000112';
 
@@ -56,11 +56,11 @@ select public.record_guardian_consent('80000000-0000-4000-8000-000000000116','ac
 select public.record_guardian_consent('80000000-0000-4000-8000-000000000116','recording','grant','share-test-v1','share-test-s1');
 
 -- Directory test: guardian sees only verified psychologists
-assert (select count(*) from public.psychologist_profiles where verification_status = 'verified') = 1, 'Verified psychologist directory count mismatch';
+do $$ begin assert (select count(*) from public.psychologist_profiles where verification_status = 'verified') = 1, 'Verified psychologist directory count mismatch'; end $$;
 
 -- Teacher creates session, records audio, and publishes report
 select set_config('request.jwt.claim.sub','80000000-0000-4000-8000-000000000101',true);
-select public.set_teacher_pin('135790');
+select public.set_teacher_pin('1357');
 
 do $$
 declare
@@ -83,10 +83,10 @@ begin
 
   upload_res := public.request_audio_upload(attempt_id, 'audio/webm');
   rec_id := (upload_res->>'recordingId')::uuid;
-  perform public.finalize_audio_upload(rec_id, 'sha256:abc12345', 1048576, 12000);
+  perform public.finalize_audio_upload(rec_id, 'sha256:abc123456789', 1048576, 12000);
 
   perform public.complete_assessment_session(sess_id);
-  perform public.unlock_teacher_mode('135790');
+  perform public.unlock_teacher_mode('1357');
 
   rev_id := public.save_review_draft(
     attempt_id,
@@ -177,7 +177,7 @@ end $$;
 
 -- Verify audit trail contains logged actions
 select set_config('request.jwt.claim.sub','80000000-0000-4000-8000-000000000102',true);
-assert (select count(*) from public.audit_events where actor_id = '80000000-0000-4000-8000-000000000102') >= 3, 'Guardian audit events missing';
+do $$ begin assert (select count(*) from public.audit_events where actor_id = '80000000-0000-4000-8000-000000000102') >= 3, 'Guardian audit events missing'; end $$;
 
 reset role;
 rollback;

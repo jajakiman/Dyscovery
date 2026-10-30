@@ -37,7 +37,7 @@ select set_config('request.jwt.claim.sub','70000000-0000-4000-8000-000000000121'
 select public.record_guardian_consent('70000000-0000-4000-8000-000000000143','activity','grant','report-test-v1','report-test-s1');
 
 select set_config('request.jwt.claim.sub','70000000-0000-4000-8000-000000000120',true);
-select public.set_teacher_pin('135790');
+select public.set_teacher_pin('1357');
 
 do $$
 declare
@@ -52,7 +52,7 @@ begin
   perform public.enter_student_mode(sess_id);
   attempt_id := public.save_task_attempt('pos4-reading', 'passage_read', 'screening', '{"read":true}'::jsonb, gen_random_uuid(), 1);
   perform public.complete_assessment_session(sess_id);
-  perform public.unlock_teacher_mode('135790');
+  perform public.unlock_teacher_mode('1357');
 
   -- Teacher creates draft review
   rev_id := public.save_review_draft(
@@ -102,13 +102,13 @@ end $$;
 
 -- Guardian access to published report and finalized review
 select set_config('request.jwt.claim.sub','70000000-0000-4000-8000-000000000121',true);
-assert (select count(*) from public.report_versions where status = 'published') = 1, 'Guardian cannot read published report';
-assert (select count(*) from public.review_revisions where status = 'finalized') = 1, 'Guardian cannot read finalized review';
+do $$ begin assert (select count(*) from public.report_versions where status = 'published') = 1, 'Guardian cannot read published report';
+assert (select count(*) from public.review_revisions where status = 'finalized') = 1, 'Guardian cannot read finalized review'; end $$;
 
 -- Teacher 2 without assignment cannot read report
 select set_config('request.jwt.claim.sub','70000000-0000-4000-8000-000000000122',true);
-select public.set_teacher_pin('246802');
-assert (select count(*) from public.report_versions) = 0, 'Unassigned teacher read report';
+select public.set_teacher_pin('2468');
+do $$ begin assert (select count(*) from public.report_versions) = 0, 'Unassigned teacher read report'; end $$;
 
 reset role;
 rollback;
